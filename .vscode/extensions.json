@@ -1,0 +1,24 @@
+{
+  "recommendations": [
+    "pkief.material-icon-theme",
+    "monokai.theme-monokai-pro-vscode",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.black-formatter",
+    "ms-python.flake8",
+    "ms-python.debugpy",
+    "verbotics.abb-rapid",
+    "davidanson.vscode-markdownlint",
+    "esbenp.prettier-vscode",
+    "smilerobotics.urdf",
+    "ms-azuretools.vscode-docker",
+    "ms-vscode-remote.remote-containers",
+    "ms-vscode-remote.remote-wsl",
+    "yzhang.markdown-all-in-one",
+    "george-alisson.html-preview-vscode",
+    "tomoki1207.pdf",
+    "tamasfe.even-better-toml",
+    "jeff-hykin.better-shellscript-syntax",
+    "mushan.vscode-paste-image"
+  ]
+}

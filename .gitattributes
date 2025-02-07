@@ -1,2 +1,43 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# #################################################################################
+# This is a repo-level .gitattributes file that overrides the CRLF or LF behavior
+# specified in the .gitconfig file. It allows for additional fine-tuning beyond
+# the global configuration.
+#
+# Uncomment the settings below if you want to apply specific line ending rules
+# to certain file types or need to handle special cases in your repository.
+# #################################################################################
+
+# Auto-detect and normalize text files (Git will automatically adjust line endings)
+# Uncomment the following line to auto-detect and normalize line endings:
+# * text=auto
+
+# Force LF endings for scripts & config files (preferred for Mac/Linux environments)
+# Uncomment the following lines to ensure LF endings for scripts and config files:
+# *.sh text eol=lf
+# *.md text eol=lf
+# *.yml text eol=lf
+# *.json text eol=lf
+# *.xml text eol=lf
+# *.py text eol=lf
+# *.cpp text eol=lf
+# *.h text eol=lf
+
+# Force CRLF for Windows-specific files (if needed for compatibility)
+# Uncomment the following lines to ensure CRLF endings for Windows-specific scripts
+# *.bat text eol=crlf
+# *.cmd text eol=crlf
+
+# Treat binary files correctly (Git will not attempt to modify line endings)
+# Binary files (e.g., images, videos, archives) should always have the correct handling
+# Uncomment the following lines to ensure LF endings for scripts and config files:
+*.jpg binary
+*.png binary
+*.gif binary
+*.zip binary
+*.pdf binary
+*.mp4 binary
+
+# LFS (Large File Storage) files (configured for use with Git LFS)
+# Uncomment the following lines if you're using Git LFS to store large binary files
+*.3dm filter=lfs diff=lfs merge=lfs -text
+*.rspag filter=lfs diff=lfs merge=lfs -text

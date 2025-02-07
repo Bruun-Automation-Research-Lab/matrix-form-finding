@@ -1,0 +1,8 @@
+name: matrix_formfind
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - numpy
+  - pre-commit==3.3.2
