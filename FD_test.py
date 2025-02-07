@@ -340,6 +340,9 @@ external_loads = {
 fixed_nodes = [6, 7, 8, 9]
 
 s = np.ones(12)
+s = np.random.rand(12)
+q = np.ones(12)
+q = np.random.rand(12)
 
 # Generate connectivity matrix
 connectivity_matrix = create_connectivity_matrix(nodes, elements)
@@ -379,7 +382,7 @@ for iteration in range(MAX_ITER):
     x, y, z, x_f, y_f, z_f = separate_coordinates(nodes, fixed_nodes)
 
     # Compute force densities
-    q = generate_force_densities(L, s)
+    # q = generate_force_densities(L, s)
     Q = np.diag(q.flatten())
 
     # Compute matrices
