@@ -2,7 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from struct_1 import nodes,elements,external_loads,fixed_nodes
+from generate_grid import generate_grid
+from plotting import plot_network3D_2, plot_network3D
+
+from struct_1 import nodes, elements, external_loads, fixed_nodes
 
 # 1. Create the connectivity matrix
 def create_connectivity_matrix(nodes, elements):
@@ -192,75 +195,6 @@ def compute_new_positions(p_x, p_y, p_z, D, D_f, x_f, y_f, z_f):
     return x_new, y_new, z_new
 
 
-# 2. Plot the network
-def plot_network(nodes, elements):
-    # Create a figure and axis
-    fig, ax = plt.subplots()
-
-    # Plot each node
-    for node, (x, y) in nodes.items():
-        ax.scatter(x, y, color="blue")
-        ax.text(x + 0.1, y + 0.1, str(node), fontsize=12)
-
-    # Plot each element (line between connected nodes)
-    for start, end in elements:
-        x_start, y_start = nodes[abs(start)]
-        x_end, y_end = nodes[abs(end)]
-
-        # Reverse the direction if start is negative
-        if start < 0:
-            ax.plot([x_end, x_start], [y_end, y_start], color="black")
-        else:
-            ax.plot([x_start, x_end], [y_start, y_end], color="black")
-
-    # Set equal scaling and grid
-    ax.set_aspect("equal")
-    ax.grid(True)
-    plt.show()
-
-
-def plot_network3D(nodes, elements):
-    # Create a 3D figure and axis
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-
-    # Plot each node
-    for node, (x, y, z) in nodes.items():
-        ax.scatter(x, y, z, color="blue", s=50)  # Plot nodes as blue points
-        ax.text(
-            x + 0.1, y + 0.1, z, str(node), fontsize=12
-        )  # Add node labels
-
-    # Plot each element (line between connected nodes)
-    for start, end in elements:
-        x_start, y_start, z_start = nodes[abs(start)]
-        x_end, y_end, z_end = nodes[abs(end)]
-
-        # Reverse the direction if start is negative
-        if start < 0:
-            ax.plot(
-                [x_end, x_start],
-                [y_end, y_start],
-                [z_end, z_start],
-                color="black",
-            )
-        else:
-            ax.plot(
-                [x_start, x_end],
-                [y_start, y_end],
-                [z_start, z_end],
-                color="black",
-            )
-
-    # Set labels for axes
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
-
-    # Display the plot
-    plt.show()
-
-
 def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
     """
     Updates the positions of free nodes using x_new, y_new, z_new.
@@ -300,25 +234,32 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
 # print("Diagonal matrix W:\n", W)
 
 
+nodes, elements, external_loads, fixed_nodes = generate_grid(5, spacing=2.5)
 
+print(nodes)
 
-plot_network3D(nodes, elements)
+# external_loads[13] = (0.0, 0.0, -1)
+
+plot_network3D_2(nodes, elements, fixed_nodes, external_loads)
+
 
 s = np.ones(len(elements))
 q = np.ones(len(elements))
 # q[0] = 5
 # q[3] = 10
 
+
+
 # Generate connectivity matrix
 connectivity_matrix = create_connectivity_matrix(nodes, elements)
-print("Connectivity Matrix:")
+print("Connectivity Matrix:\n")
 print(connectivity_matrix)
 
 
 C, C_f = partition_connectivity_matrix(connectivity_matrix, nodes, fixed_nodes)
-print("C (Connectivity matrix with free nodes):")
+print("C (Connectivity matrix with free nodes):\n")
 print(C)
-print("Cf (Connectivity matrix with fixed nodes):")
+print("Cf (Connectivity matrix with fixed nodes):\n")
 print(C_f)
 
 
@@ -340,12 +281,12 @@ length, L = calculate_element_lengths(nodes, elements)
 print("Element Lengths:", np.diag(L))
 
 for iteration in range(MAX_ITER):
-    print(f"\nIteration {iteration + 1}")
+    # print(f"\nIteration {iteration + 1}")
 
     x, y, z, x_f, y_f, z_f = separate_coordinates(nodes, fixed_nodes)
 
     # Compute force densities
-    # q = generate_force_densities(L, s)
+    q = generate_force_densities(L, s)
     Q = np.diag(q.flatten())
 
     # Compute matrices
@@ -364,6 +305,9 @@ for iteration in range(MAX_ITER):
     length_new, L_new = calculate_element_lengths(updated_nodes, elements)
 
     # Check for convergence
+    max_error = np.max(np.abs(L_new - L))
+    print(f'Iteration {iteration}: Max error = {max_error}')
+
     if np.allclose(L, L_new, atol=TOL):
         print("Convergence achieved!")
         break
@@ -372,7 +316,7 @@ for iteration in range(MAX_ITER):
     nodes = updated_nodes
     L = L_new
 
-    plot_network3D(updated_nodes, elements)
+    plot_network3D_2(nodes, elements, fixed_nodes, external_loads)
 
 else:
     print("Max iterations reached without convergence.")
@@ -383,7 +327,10 @@ for node, coords in updated_nodes.items():
     print(f"{node}: {coords}")
 
 print("Final Element Lengths:", np.diag(L_new))
-print("Final Element Forces:", np.dot(L_new, q))
+
+f = np.dot(L_new, q)
+print("Final Element Forces:", f)
+print("Final Element Forces (normalized):", f/np.average(f))
 
 # Plot the network
-plot_network3D(nodes, elements)
+plot_network3D_2(updated_nodes, elements, fixed_nodes, external_loads)
