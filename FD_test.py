@@ -1,10 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 
 from structures.struct_2 import generate_struct
-from plotting import plot_network3D
+from plotting import plot_network3D, plot_network_animated
 
 
 # 1. Create the connectivity matrix
@@ -120,43 +119,6 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
 
 def total_len(L):
     return np.dot(np.diag(L).T, np.diag(L))
-
-
-# Function to plot the network at each step of the iteration
-def plot_network_animated(ax, nodes, elements, fixed_nodes):
-    ax.cla()  # Clear the axes
-    x_vals = [nodes[node][0] for node in nodes]
-    y_vals = [nodes[node][1] for node in nodes]
-    z_vals = [nodes[node][2] for node in nodes]
-
-    # Plot nodes
-    ax.scatter(x_vals, y_vals, z_vals, c="b", marker="o", label="Nodes")
-
-    # Highlight fixed nodes in red
-    x_fixed = [nodes[node][0] for node in fixed_nodes]
-    y_fixed = [nodes[node][1] for node in fixed_nodes]
-    z_fixed = [nodes[node][2] for node in fixed_nodes]
-    ax.scatter(
-        x_fixed, y_fixed, z_fixed, c="r", marker="x", label="Fixed Nodes"
-    )
-
-    # Plot the elements (edges between nodes)
-    for start, end in elements:
-        x_start, y_start, z_start = nodes[abs(start)]
-        x_end, y_end, z_end = nodes[abs(end)]
-        ax.plot(
-            [x_start, x_end],
-            [y_start, y_end],
-            [z_start, z_end],
-            c="g",
-            linestyle="-",
-            linewidth=1,
-        )
-
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
-    ax.legend()
 
 
 # Main computation

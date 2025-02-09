@@ -53,3 +53,40 @@ def plot_network3D(nodes, elements, fixed_nodes, external_loads):
     ax.set_zlabel("Z")
     plt.legend()
     plt.show()
+
+
+# Function to plot the network at each step of the iteration
+def plot_network_animated(ax, nodes, elements, fixed_nodes):
+    ax.cla()  # Clear the axes
+    x_vals = [nodes[node][0] for node in nodes]
+    y_vals = [nodes[node][1] for node in nodes]
+    z_vals = [nodes[node][2] for node in nodes]
+
+    # Plot nodes
+    ax.scatter(x_vals, y_vals, z_vals, c="b", marker="o", label="Nodes")
+
+    # Highlight fixed nodes in red
+    x_fixed = [nodes[node][0] for node in fixed_nodes]
+    y_fixed = [nodes[node][1] for node in fixed_nodes]
+    z_fixed = [nodes[node][2] for node in fixed_nodes]
+    ax.scatter(
+        x_fixed, y_fixed, z_fixed, c="r", marker="x", label="Fixed Nodes"
+    )
+
+    # Plot the elements (edges between nodes)
+    for start, end in elements:
+        x_start, y_start, z_start = nodes[abs(start)]
+        x_end, y_end, z_end = nodes[abs(end)]
+        ax.plot(
+            [x_start, x_end],
+            [y_start, y_end],
+            [z_start, z_end],
+            c="g",
+            linestyle="-",
+            linewidth=1,
+        )
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    ax.legend()
