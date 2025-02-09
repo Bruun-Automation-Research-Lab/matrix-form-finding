@@ -3,7 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from structures.struct_2 import generate_struct
+from structures.struct_3 import generate_struct
 from plotting import plot_network3D, plot_network_animated
 
 
@@ -95,8 +95,8 @@ def calculate_element_lengths(nodes, elements):
 
 
 def generate_force_densities(L, s):
-    if np.linalg.det(L) == 0:
-        raise ValueError("Matrix L is singular and cannot be inverted.")
+    # if np.linalg.det(L) == 0:
+    #     raise ValueError("Matrix L is singular and cannot be inverted.")
 
     return np.linalg.solve(L, s)
 
@@ -141,13 +141,51 @@ def total_len(L):
     return np.dot(np.diag(L).T, np.diag(L))
 
 
+def generate_s(elements, N, ratio_outer_to_inner=1):
+    """
+    Generate the s array where elements on the boundary have a value based on
+    the specified ratio and interior elements have another value.
+
+    Parameters:
+    - elements: List of elements (indices of grid elements)
+    - N: Size of the NxN grid
+    - ratio_outer_to_inner: Ratio of the value on the boundary to the inside
+
+    Returns:
+    - s: Array with values based on the ratio for boundary and inside
+    """
+    # Initialize s with values of 1
+    s = np.ones(len(elements))
+
+    # Find the nodes on the boundary
+    boundary_nodes = set()
+    for i in range(N):
+        for j in range(N):
+            if i == 0 or j == 0 or i == N - 1 or j == N - 1:
+                # Boundary node indices
+                boundary_nodes.add(i * N + j)
+
+    # Adjust the values in s based on the boundary and interior
+    for idx, element in enumerate(elements):
+        if element[0] in boundary_nodes or element[1] in boundary_nodes:
+            # Boundary element (set the value based on the ratio)
+            s[idx] = ratio_outer_to_inner
+        else:
+            # Interior element (keep the default value of 1)
+            s[idx] = 1
+
+    return s
+
+
 # Main computation
 def main(debug=False):
     setup_logging(debug)
     # Generate grid
     nodes, elements, external_loads, fixed_nodes = generate_struct(
-        5, spacing=2.5
+        20, spacing=0.5
     )
+
+    # nodes, elements, external_loads, fixed_nodes = generate_struct()
 
     # Calculate initial element lengths
     _, L = calculate_element_lengths(nodes, elements)
@@ -156,8 +194,11 @@ def main(debug=False):
     # Plot network
     plot_network3D(nodes, elements, fixed_nodes, external_loads)
 
-    s = np.ones(len(elements))
+    # s = np.ones(len(elements))
+    # s = generate_s(elements, 20, 5)
+
     q = np.ones(len(elements))
+    q = generate_s(elements, 20, 1)
 
     # Generate connectivity matrix
     connectivity_matrix = create_connectivity_matrix(nodes, elements)
@@ -192,7 +233,7 @@ def main(debug=False):
         x, y, z, x_f, y_f, z_f = separate_coordinates(nodes, fixed_nodes)
 
         # Generate force densities
-        q = generate_force_densities(L, s)
+        # q = generate_force_densities(L, s)
         Q = np.diag(q.flatten())
 
         # Compute matrices
@@ -229,6 +270,8 @@ def main(debug=False):
 
         node_positions.append(nodes.copy())
 
+        plot_network3D(nodes, elements, fixed_nodes, external_loads)
+
     else:
         print("Max iterations reached without convergence.")
 
@@ -251,9 +294,8 @@ def main(debug=False):
     logging.debug("\nFinal Nodes:\n %s", updated_nodes)
     logging.debug("\nFinal Element Lengths:\n %s", np.diag(L_new))
     logging.debug("\nFinal Element Forces:\n %s", f)
-    logging.debug(
-        "\nFinal Element Forces (normalized):\n %s", f / np.average(f)
-    )
+    logging.debug("\nFinal Element Force Densities:\n %s", q)
+    logging.debug("\nFinal Element Forces (f/f_avg):\n %s", f / np.average(f))
 
     # Plot final network
     plot_network3D(updated_nodes, elements, fixed_nodes, external_loads)

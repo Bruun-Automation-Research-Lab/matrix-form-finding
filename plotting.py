@@ -44,7 +44,7 @@ def plot_network3D(nodes, elements, fixed_nodes, external_loads):
                 y,
                 z,
                 color="black",
-                s=25,
+                s=5,
                 label="Normal" if node_id == 1 else "",
             )
 
@@ -63,7 +63,7 @@ def plot_network_animated(ax, nodes, elements, fixed_nodes):
     z_vals = [nodes[node][2] for node in nodes]
 
     # Plot nodes
-    ax.scatter(x_vals, y_vals, z_vals, c="b", marker="o", label="Nodes")
+    ax.scatter(x_vals, y_vals, z_vals, c="b", marker=".", label="Nodes")
 
     # Highlight fixed nodes in red
     x_fixed = [nodes[node][0] for node in fixed_nodes]
