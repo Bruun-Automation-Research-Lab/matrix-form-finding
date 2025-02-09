@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from generate_grid import generate_grid
-from plotting import plot_network3D_2
+from plotting import plot_network3D
 
 # from struct_1 import nodes, elements, external_loads, fixed_nodes
 
@@ -221,6 +221,12 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
     return updated_nodes
 
 
+def total_len(L):
+    L_diag = np.diag(L)
+
+    return np.dot(L_diag.T, L_diag)
+
+
 # # Create and diagonalize
 # U, V, W = create_and_diagonalize(C, C_f, x, x_f, y, y_f, z, z_f)
 
@@ -231,12 +237,15 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
 
 
 nodes, elements, external_loads, fixed_nodes = generate_grid(5, spacing=2.5)
+# external_loads[13] = (0.0, 0.0, -1)
 
 print(nodes)
 
-# external_loads[13] = (0.0, 0.0, -1)
+_, L = calculate_element_lengths(nodes, elements)
+L_total = total_len(L)
 
-plot_network3D_2(nodes, elements, fixed_nodes, external_loads)
+
+plot_network3D(nodes, elements, fixed_nodes, external_loads)
 
 
 s = np.ones(len(elements))
@@ -297,21 +306,30 @@ for iteration in range(MAX_ITER):
     updated_nodes = update_nodes(nodes, x_new, y_new, z_new, fixed_nodes)
 
     # Compute new element lengths
-    length_new, L_new = calculate_element_lengths(updated_nodes, elements)
+    _, L_new = calculate_element_lengths(updated_nodes, elements)
 
-    # Check for convergence
-    max_error = np.max(np.abs(L_new - L))
-    print(f"Iteration {iteration}: Max error = {max_error}")
+    # Check for convergencexw
 
-    if np.allclose(L, L_new, atol=TOL):
+    L_total_new = total_len(L_new)
+
+    max_error = L_total_new - L_total
+
+    print(
+        f"Iteration {iteration + 1}: \
+            Total Len = {L_total_new},\
+            Max error = {max_error}"
+    )
+
+    if np.abs(max_error) < TOL:
         print("Convergence achieved!")
         break
 
     # Update L for the next iteration
     nodes = updated_nodes
     L = L_new
+    L_total = L_total_new
 
-    plot_network3D_2(nodes, elements, fixed_nodes, external_loads)
+    # plot_network3D_2(nodes, elements, fixed_nodes, external_loads)
 
 else:
     print("Max iterations reached without convergence.")
@@ -328,4 +346,4 @@ print("Final Element Forces:", f)
 print("Final Element Forces (normalized):", f / np.average(f))
 
 # Plot the network
-plot_network3D_2(updated_nodes, elements, fixed_nodes, external_loads)
+plot_network3D(updated_nodes, elements, fixed_nodes, external_loads)
