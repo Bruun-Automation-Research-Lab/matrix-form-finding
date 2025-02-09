@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.animation as animation
 
-from generate_grid import generate_grid
+from structures.struct_2 import generate_struct
 from plotting import plot_network3D
 
 
@@ -162,7 +162,7 @@ def plot_network_animated(ax, nodes, elements, fixed_nodes):
 # Main computation
 def main():
     # Generate grid
-    nodes, elements, external_loads, fixed_nodes = generate_grid(
+    nodes, elements, external_loads, fixed_nodes = generate_struct(
         5, spacing=2.5
     )
     print("Nodes:\n", nodes)
@@ -235,7 +235,10 @@ def main():
         max_error = L_total_new - L_total
 
         print(
-            f"Iteration {iteration + 1}: Total Len = {L_total_new}, Max error = {max_error}"
+            f"\
+            Iteration {iteration + 1}:\
+            Total Len = {L_total_new},\
+            Max error = {max_error}"
         )
 
         if np.abs(max_error) < TOL:
