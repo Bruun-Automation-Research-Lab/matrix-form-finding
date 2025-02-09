@@ -18,12 +18,12 @@ def generate_struct(N, spacing=2.0):
             x, y = i * spacing, j * spacing
 
             # Compute z-values based on edge/corner location
-            if i in {0, N-1} and j in {0, N-1}:  # Corners
-                z = corner_z[i // (N-1), j // (N-1)]
-            elif i in {0, N-1}:  # Edge along x-direction
-                z = np.interp(j, [0, N-1], corner_z[i // (N-1), :])
-            elif j in {0, N-1}:  # Edge along y-direction
-                z = np.interp(i, [0, N-1], corner_z[:, j // (N-1)])
+            if i in {0, N - 1} and j in {0, N - 1}:  # Corners
+                z = corner_z[i // (N - 1), j // (N - 1)]
+            elif i in {0, N - 1}:  # Edge along x-direction
+                z = np.interp(j, [0, N - 1], corner_z[i // (N - 1), :])
+            elif j in {0, N - 1}:  # Edge along y-direction
+                z = np.interp(i, [0, N - 1], corner_z[:, j // (N - 1)])
             else:
                 z = 0.0  # Interior nodes
 
@@ -39,10 +39,10 @@ def generate_struct(N, spacing=2.0):
     external_loads = {node_id: (0.0, 0.0, 0.0) for node_id in nodes}
 
     # Generate elements (grid connectivity)
-    node_index = lambda i, j: i * N + j + 1
     elements = [
-        (node_index(i, j), node_index(i + di, j + dj))
-        for i in range(N) for j in range(N)
+        ((i * N + j + 1), (i + di) * N + (j + dj) + 1)
+        for i in range(N)
+        for j in range(N)
         for di, dj in [(1, 0), (0, 1)]
         if i + di < N and j + dj < N
     ]

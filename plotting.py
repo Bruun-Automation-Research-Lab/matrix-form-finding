@@ -32,9 +32,11 @@ def plot_network3D(nodes, elements, fixed_nodes, external_loads):
                 z,
                 color="red",
                 s=50,
-                label="Loaded"
-                if node_id == list(external_loads.keys())[0]
-                else "",
+                label=(
+                    "Loaded"
+                    if node_id == list(external_loads.keys())[0]
+                    else ""
+                ),
             )
         else:
             ax.scatter(

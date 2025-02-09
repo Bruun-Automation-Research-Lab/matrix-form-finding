@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python
-  - numpy
-  - matplotlib
-  - pre-commit==3.3.2
+  - python==3.13.1
+  - numpy==2.2.2
+  - matplotlib==3.10.0
+  - pre-commit==4.1.0

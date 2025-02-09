@@ -1,5 +1,6 @@
 # Scheck paper structure
 
+
 def generate_struct():
     # Example usage
     nodes = {

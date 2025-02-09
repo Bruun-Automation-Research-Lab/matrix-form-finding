@@ -4,18 +4,27 @@
 # The repositories listed here are where the hooks are sourced from.
 
 repos:
-  # Repository for Black, a Python code formatter
-  - repo: https://github.com/psf/black
-    rev: 23.3.0 # Specifies the version of Black to use
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0 # Check for the latest version
     hooks:
-      # Hook for running the Black code formatter
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+
+  - repo: https://github.com/psf/black
+    rev: 25.1.0 # Auto-formats code
+    hooks:
       - id: black
         args: ['--config=pyproject.toml'] # Specifies the configuration file for Black's settings
         language_version: python # Specifies the language version to use for the hook (Python in this case)
 
-  # Repository for Flake8, a Python linter that checks for code style issues and errors
-  - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0 # Specifies the version of Flake8 to use
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.1
     hooks:
-      # Hook for running Flake8 linter
-      - id: flake8 # The identifier for the Flake8 hook
+      - id: flake8
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.19.1
+    hooks:
+      - id: pyupgrade
+        args: ['--py39-plus']
