@@ -1,9 +1,25 @@
 import numpy as np
+import logging
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 from structures.struct_2 import generate_struct
 from plotting import plot_network3D, plot_network_animated
+
+
+# Set up logging
+def setup_logging(debug=False):
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
+
+    if debug:
+        logging.basicConfig(
+            filename="./debug_log.txt",
+            level=logging.DEBUG,
+            format="%(message)s",
+            filemode="w",
+        )
+    else:
+        logging.basicConfig(level=logging.INFO)
 
 
 # 1. Create the connectivity matrix
@@ -92,7 +108,7 @@ def compute_free_node_forces(nodes, external_loads, fixed_nodes):
     p_y = np.array([external_loads[node][1] for node in free_nodes])
     p_z = np.array([external_loads[node][2] for node in free_nodes])
 
-    return p_x, p_y, p_z
+    return p_x.reshape(-1, 1), p_y.reshape(-1, 1), p_z.reshape(-1, 1)
 
 
 def compute_new_positions(p_x, p_y, p_z, D, D_f, x_f, y_f, z_f):
@@ -112,7 +128,11 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
     free_nodes = [node for node in nodes if node not in fixed_nodes]
 
     for i, node in enumerate(free_nodes):
-        updated_nodes[node] = (x_new[i][0], y_new[i][0], z_new[i][0])
+        updated_nodes[node] = (
+            float(x_new[i]),
+            float(y_new[i]),
+            float(z_new[i]),
+        )
 
     return updated_nodes
 
@@ -122,12 +142,12 @@ def total_len(L):
 
 
 # Main computation
-def main():
+def main(debug=False):
+    setup_logging(debug)
     # Generate grid
     nodes, elements, external_loads, fixed_nodes = generate_struct(
         5, spacing=2.5
     )
-    print("Nodes:\n", nodes)
 
     # Calculate initial element lengths
     _, L = calculate_element_lengths(nodes, elements)
@@ -141,35 +161,31 @@ def main():
 
     # Generate connectivity matrix
     connectivity_matrix = create_connectivity_matrix(nodes, elements)
-    print("Connectivity Matrix:\n", connectivity_matrix)
 
     C, C_f = partition_connectivity_matrix(
         connectivity_matrix, nodes, fixed_nodes
     )
-    print("C (free nodes):\n", C)
-    print("Cf (fixed nodes):\n", C_f)
 
     # Compute forces on free nodes
     p_x, p_y, p_z = compute_free_node_forces(
         nodes, external_loads, fixed_nodes
     )
-    print("p_x:", p_x)
-    print("p_y:", p_y)
-    print("p_z:", p_z)
 
     # Set convergence criteria
     TOL = 1e-4
     MAX_ITER = 1000
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
-
-    # Initial plot
-    plot_network_animated(ax, nodes, elements, fixed_nodes)
-
     # Create a list to hold node positions at each iteration for animation
     node_positions = []
     node_positions.append(nodes.copy())  # Store initial position
+
+    logging.debug("Nodes:\n %s", nodes)
+    logging.debug("\nConnectivity Matrix:\n %s", connectivity_matrix)
+    logging.debug("\nC (free nodes):\n %s", C)
+    logging.debug("\nCf (fixed nodes):\n %s", C_f)
+    logging.debug("\np_x:\n %s", p_x)
+    logging.debug("\np_y:\n %s", p_y)
+    logging.debug("\np_z:\n %s", p_z)
 
     # Initialize iteration
     for iteration in range(MAX_ITER):
@@ -197,10 +213,9 @@ def main():
         max_error = L_total_new - L_total
 
         print(
-            f"\
-            Iteration {iteration + 1}:\
-            Total Len = {L_total_new},\
-            Max error = {max_error}"
+            f"Iteration {iteration + 1}: "
+            f"Total Len = {L_total_new:.3f}, "
+            f"Max error = {max_error:.3f}"
         )
 
         if np.abs(max_error) < TOL:
@@ -217,32 +232,32 @@ def main():
     else:
         print("Max iterations reached without convergence.")
 
-    # Define the update function for the animation
+    # Animation
     def update(frame):
         plot_network_animated(ax, node_positions[frame], elements, fixed_nodes)
 
     # Create the animation
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+
     _ = animation.FuncAnimation(
         fig, update, frames=len(node_positions), interval=500
     )
 
-    # Display the animation
     plt.show()
 
-    # Final output
-    print("\nFinal Updated Nodes:")
-    for node, coords in updated_nodes.items():
-        print(f"{node}: {coords}")
-
-    print("Final Element Lengths:", np.diag(L_new))
-
     f = np.dot(L_new, q)
-    print("Final Element Forces:", f)
-    print("Final Element Forces (normalized):", f / np.average(f))
+
+    logging.debug("\nFinal Nodes:\n %s", updated_nodes)
+    logging.debug("\nFinal Element Lengths:\n %s", np.diag(L_new))
+    logging.debug("\nFinal Element Forces:\n %s", f)
+    logging.debug(
+        "\nFinal Element Forces (normalized):\n %s", f / np.average(f)
+    )
 
     # Plot final network
     plot_network3D(updated_nodes, elements, fixed_nodes, external_loads)
 
 
 if __name__ == "__main__":
-    main()
+    main(debug=True)

@@ -19,11 +19,11 @@ def generate_struct(N, spacing=2.0):
 
             # Compute z-values based on edge/corner location
             if i in {0, N - 1} and j in {0, N - 1}:  # Corners
-                z = corner_z[i // (N - 1), j // (N - 1)]
+                z = float(corner_z[i // (N - 1), j // (N - 1)])
             elif i in {0, N - 1}:  # Edge along x-direction
-                z = np.interp(j, [0, N - 1], corner_z[i // (N - 1), :])
+                z = float(np.interp(j, [0, N - 1], corner_z[i // (N - 1), :]))
             elif j in {0, N - 1}:  # Edge along y-direction
-                z = np.interp(i, [0, N - 1], corner_z[:, j // (N - 1)])
+                z = float(np.interp(i, [0, N - 1], corner_z[:, j // (N - 1)]))
             else:
                 z = 0.0  # Interior nodes
 
