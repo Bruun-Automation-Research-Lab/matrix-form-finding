@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
+from struct_1 import nodes,elements,external_loads,fixed_nodes
 
 # 1. Create the connectivity matrix
 def create_connectivity_matrix(nodes, elements):
@@ -227,7 +228,7 @@ def plot_network3D(nodes, elements):
     for node, (x, y, z) in nodes.items():
         ax.scatter(x, y, z, color="blue", s=50)  # Plot nodes as blue points
         ax.text(
-            x + 0.1, y + 0.1, z + 0.1, str(node), fontsize=12
+            x + 0.1, y + 0.1, z, str(node), fontsize=12
         )  # Add node labels
 
     # Plot each element (line between connected nodes)
@@ -288,45 +289,7 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
     return updated_nodes
 
 
-# Example usage
-nodes = {
-    1: (-2.0, 0.0, 0.0),
-    2: (0.0, -2.0, 0.0),
-    3: (2.0, 0.0, 0.0),
-    4: (0.0, 2.0, 0.0),
-    5: (0.0, 0.0, 0.0),
-    6: (-3.0, 0.0, 0.0),
-    7: (0.0, -3.0, 0.0),
-    8: (3.0, 0.0, 0.0),
-    9: (0.0, 3.0, 0.0),
-}
 
-elements = [
-    (1, 6),
-    (2, 7),
-    (3, 8),
-    (4, -9),
-    (1, 4),
-    (1, 2),
-    (2, 3),
-    (3, 4),
-    (4, 5),
-    (1, 5),
-    (2, 5),
-    (3, 5),
-]
-
-external_loads = {
-    1: (0.0, 0.0, 0.0),
-    2: (0.0, 0.0, 0.0),
-    3: (0.0, 0.0, 0.0),
-    4: (0.0, 0.0, 0.0),
-    5: (0.0, 0.0, -0.1),
-    6: (0.0, 0.0, 0.0),
-    7: (0.0, 0.0, 0.0),
-    8: (0.0, 0.0, 0.0),
-    9: (0.0, 0.0, 0.0),
-}
 
 # # Create and diagonalize
 # U, V, W = create_and_diagonalize(C, C_f, x, x_f, y, y_f, z, z_f)
@@ -337,12 +300,14 @@ external_loads = {
 # print("Diagonal matrix W:\n", W)
 
 
-fixed_nodes = [6, 7, 8, 9]
 
-s = np.ones(12)
-s = np.random.rand(12)
-q = np.ones(12)
-q = np.random.rand(12)
+
+plot_network3D(nodes, elements)
+
+s = np.ones(len(elements))
+q = np.ones(len(elements))
+# q[0] = 5
+# q[3] = 10
 
 # Generate connectivity matrix
 connectivity_matrix = create_connectivity_matrix(nodes, elements)
@@ -372,12 +337,10 @@ MAX_ITER = 100  # Prevent infinite loops
 
 # Compute initial L
 length, L = calculate_element_lengths(nodes, elements)
-print("Initial Element Lengths:", L)
+print("Element Lengths:", np.diag(L))
 
 for iteration in range(MAX_ITER):
     print(f"\nIteration {iteration + 1}")
-
-    length, L = calculate_element_lengths(nodes, elements)
 
     x, y, z, x_f, y_f, z_f = separate_coordinates(nodes, fixed_nodes)
 
@@ -407,6 +370,7 @@ for iteration in range(MAX_ITER):
 
     # Update L for the next iteration
     nodes = updated_nodes
+    L = L_new
 
     plot_network3D(updated_nodes, elements)
 
@@ -414,11 +378,12 @@ else:
     print("Max iterations reached without convergence.")
 
 # Output final results
-print("Final Updated Nodes:")
+print("\nFinal Updated Nodes:")
 for node, coords in updated_nodes.items():
     print(f"{node}: {coords}")
 
-print("Final Element Lengths:", L_new)
+print("Final Element Lengths:", np.diag(L_new))
+print("Final Element Forces:", np.dot(L_new, q))
 
 # Plot the network
 plot_network3D(nodes, elements)
