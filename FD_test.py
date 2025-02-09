@@ -3,9 +3,10 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 from generate_grid import generate_grid
-from plotting import plot_network3D_2, plot_network3D
+from plotting import plot_network3D_2
 
-from struct_1 import nodes, elements, external_loads, fixed_nodes
+# from struct_1 import nodes, elements, external_loads, fixed_nodes
+
 
 # 1. Create the connectivity matrix
 def create_connectivity_matrix(nodes, elements):
@@ -46,9 +47,6 @@ def partition_connectivity_matrix(connectivity_matrix, nodes, fixed_nodes):
     Cf = connectivity_matrix[:, fixed_node_indices]
 
     return C, Cf
-
-
-import numpy as np
 
 
 def separate_coordinates(nodes, fixed_nodes):
@@ -95,9 +93,9 @@ def calculate_element_lengths(nodes, elements):
         lengths.append(length)
 
     # Convert lengths list to an nx1 numpy array (column vector)
-    l = np.array(lengths).reshape(-1, 1)
-    L = np.diag(l.flatten())
-    return l, L
+    l_vec = np.array(lengths).reshape(-1, 1)
+    L_mat = np.diag(l_vec.flatten())
+    return l_vec, L_mat
 
 
 def create_and_diagonalize(C, Cf, x, xf, y, yf, z, zf):
@@ -201,7 +199,7 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
 
     Parameters:
     nodes (dict): Dictionary of nodes {index: (x, y, z)}
-    x_new, y_new, z_new (numpy.ndarray): Updated position vectors for free nodes.
+    x_new, y_new, z_new (numpy.ndarray): position vectors for free nodes.
     fixed_nodes (list): List of fixed node indices.
 
     Returns:
@@ -221,8 +219,6 @@ def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
         )
 
     return updated_nodes
-
-
 
 
 # # Create and diagonalize
@@ -247,7 +243,6 @@ s = np.ones(len(elements))
 q = np.ones(len(elements))
 # q[0] = 5
 # q[3] = 10
-
 
 
 # Generate connectivity matrix
@@ -306,7 +301,7 @@ for iteration in range(MAX_ITER):
 
     # Check for convergence
     max_error = np.max(np.abs(L_new - L))
-    print(f'Iteration {iteration}: Max error = {max_error}')
+    print(f"Iteration {iteration}: Max error = {max_error}")
 
     if np.allclose(L, L_new, atol=TOL):
         print("Convergence achieved!")
@@ -330,7 +325,7 @@ print("Final Element Lengths:", np.diag(L_new))
 
 f = np.dot(L_new, q)
 print("Final Element Forces:", f)
-print("Final Element Forces (normalized):", f/np.average(f))
+print("Final Element Forces (normalized):", f / np.average(f))
 
 # Plot the network
 plot_network3D_2(updated_nodes, elements, fixed_nodes, external_loads)
