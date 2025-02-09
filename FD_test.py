@@ -1,11 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.animation as animation
 
 from generate_grid import generate_grid
 from plotting import plot_network3D
-
-# from struct_1 import nodes, elements, external_loads, fixed_nodes
 
 
 # 1. Create the connectivity matrix
@@ -13,36 +12,34 @@ def create_connectivity_matrix(nodes, elements):
     num_nodes = len(nodes)
     num_elements = len(elements)
 
-    # Initialize a matrix of size (num_elements x num_nodes)
     connectivity_matrix = np.zeros((num_elements, num_nodes), dtype=int)
 
     for i, (start, end) in enumerate(elements):
-        # Handle negative node indices (reverse direction)
-        start_idx = abs(start) - 1  # Convert 1-based index to 0-based
-        end_idx = abs(end) - 1  # Convert 1-based index to 0-based
-
+        start_idx, end_idx = (
+            abs(start) - 1,
+            abs(end) - 1,
+        )  # Convert to 0-based index
         if start < 0:
-            # Reverse direction: start node becomes the ending node
-            connectivity_matrix[i, end_idx] = 1
-            connectivity_matrix[i, start_idx] = -1
+            (
+                connectivity_matrix[i, end_idx],
+                connectivity_matrix[i, start_idx],
+            ) = (1, -1)
         else:
-            # Normal direction: start node becomes the starting node
-            connectivity_matrix[i, start_idx] = 1
-            connectivity_matrix[i, end_idx] = -1
+            (
+                connectivity_matrix[i, start_idx],
+                connectivity_matrix[i, end_idx],
+            ) = (1, -1)
 
     return connectivity_matrix
 
 
 def partition_connectivity_matrix(connectivity_matrix, nodes, fixed_nodes):
-    # Get the list of free nodes by excluding fixed nodes
+    free_nodes = [node for node in nodes if node not in fixed_nodes]
     all_nodes = list(nodes.keys())
-    free_nodes = [node for node in all_nodes if node not in fixed_nodes]
 
-    # Mapping of node indices (to match connectivity_matrix)
     free_node_indices = [all_nodes.index(node) for node in free_nodes]
     fixed_node_indices = [all_nodes.index(node) for node in fixed_nodes]
 
-    # Partition the matrix C and Cf
     C = connectivity_matrix[:, free_node_indices]
     Cf = connectivity_matrix[:, fixed_node_indices]
 
@@ -50,106 +47,48 @@ def partition_connectivity_matrix(connectivity_matrix, nodes, fixed_nodes):
 
 
 def separate_coordinates(nodes, fixed_nodes):
-    # Initialize lists for x, y, z coordinates of free and fixed nodes
-    x, y, z = [], [], []
-    x_f, y_f, z_f = [], [], []
+    free_coords, fixed_coords = [], []
 
-    # Iterate over all nodes
-    for node, (x_coord, y_coord, z_coord) in nodes.items():
-        if node in fixed_nodes:
-            # Append to fixed nodes lists
-            x_f.append(x_coord)
-            y_f.append(y_coord)
-            z_f.append(z_coord)
-        else:
-            # Append to free nodes lists
-            x.append(x_coord)
-            y.append(y_coord)
-            z.append(z_coord)
+    for node, (x, y, z) in nodes.items():
+        coords = (x, y, z)
+        (fixed_coords if node in fixed_nodes else free_coords).append(coords)
 
-    # Convert lists to numpy arrays with shape (n, 1) for column vectors
-    x = np.array(x).reshape(-1, 1)
-    y = np.array(y).reshape(-1, 1)
-    z = np.array(z).reshape(-1, 1)
+    # Separate into x, y, z for both free and fixed nodes
+    free_x, free_y, free_z = zip(*free_coords) if free_coords else ([], [], [])
+    fixed_x, fixed_y, fixed_z = (
+        zip(*fixed_coords) if fixed_coords else ([], [], [])
+    )
 
-    x_f = np.array(x_f).reshape(-1, 1)
-    y_f = np.array(y_f).reshape(-1, 1)
-    z_f = np.array(z_f).reshape(-1, 1)
-
-    return x, y, z, x_f, y_f, z_f
+    return (
+        np.array(free_x).reshape(-1, 1),
+        np.array(free_y).reshape(-1, 1),
+        np.array(free_z).reshape(-1, 1),
+        np.array(fixed_x).reshape(-1, 1),
+        np.array(fixed_y).reshape(-1, 1),
+        np.array(fixed_z).reshape(-1, 1),
+    )
 
 
 def calculate_element_lengths(nodes, elements):
-    lengths = []
-
-    # Iterate over the elements
-    for start, end in elements:
-        # Get the coordinates of the start and end nodes
-        x1, y1, z1 = nodes[abs(start)]
-        x2, y2, z2 = nodes[abs(end)]
-
-        # Calculate the Euclidean distance between the nodes
-        length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
-        lengths.append(length)
-
-    # Convert lengths list to an nx1 numpy array (column vector)
+    lengths = [
+        np.linalg.norm(np.array(nodes[abs(start)]) - np.array(nodes[abs(end)]))
+        for start, end in elements
+    ]
     l_vec = np.array(lengths).reshape(-1, 1)
     L_mat = np.diag(l_vec.flatten())
     return l_vec, L_mat
 
 
-def create_and_diagonalize(C, Cf, x, xf, y, yf, z, zf):
-    # Step 1: Create vectors u, v, and w
-    u = np.dot(C, x) + np.dot(Cf, xf)
-    v = np.dot(C, y) + np.dot(Cf, yf)
-    w = np.dot(C, z) + np.dot(Cf, zf)
-
-    # Step 2: Diagonalize the vectors
-    U = np.diag(u.flatten())
-    V = np.diag(v.flatten())
-    W = np.diag(w.flatten())
-
-    return U, V, W
-
-
 def generate_force_densities(L, s):
-    """
-    Compute force densities q using the formula: q = L^-1 * s
-
-    Parameters:
-    L (numpy.ndarray): An n x n matrix.
-    s (numpy.ndarray): An n x 1 column vector.
-
-    Returns:
-    numpy.ndarray: An n x 1 column vector representing force densities.
-    """
-    # Ensure L is invertible
     if np.linalg.det(L) == 0:
         raise ValueError("Matrix L is singular and cannot be inverted.")
 
-    # Compute q = L^-1 * s
-    q = np.linalg.solve(L, s)  # More stable than np.linalg.inv(L) @ s
-    return q
+    return np.linalg.solve(L, s)
 
 
 def compute_free_node_forces(nodes, external_loads, fixed_nodes):
-    """
-    Returns three vectors p_x, p_y, and p_z containing the force components
-    of the free nodes (nodes that are not in the fixed_nodes list).
+    free_nodes = [node for node in nodes if node not in fixed_nodes]
 
-    Parameters:
-    nodes (dict): Dictionary mapping node IDs to (x, y, z) coordinates.
-    external_loads (dict): Dictionary mapping node IDs to (Fx, Fy, Fz) forces.
-    fixed_nodes (list): List of node IDs that are fixed.
-
-    Returns:
-    tuple: Three NumPy arrays p_x, p_y, p_z containing the force components
-           of the free nodes.
-    """
-    # Identify free nodes (nodes not in fixed_nodes)
-    free_nodes = [node_id for node_id in nodes if node_id not in fixed_nodes]
-
-    # Extract force components for free nodes
     p_x = np.array([external_loads[node][0] for node in free_nodes])
     p_y = np.array([external_loads[node][1] for node in free_nodes])
     p_z = np.array([external_loads[node][2] for node in free_nodes])
@@ -158,192 +97,187 @@ def compute_free_node_forces(nodes, external_loads, fixed_nodes):
 
 
 def compute_new_positions(p_x, p_y, p_z, D, D_f, x_f, y_f, z_f):
-    """
-    Computes new position vectors x_new, y_new, z_new using the equation:
-
-        x_new = D^-1 * (p_x - D_f * x_f)
-        y_new = D^-1 * (p_y - D_f * y_f)
-        z_new = D^-1 * (p_z - D_f * z_f)
-
-    Parameters:
-    p_x, p_y, p_z (numpy.ndarray): Force components for free nodes.
-    D (numpy.ndarray): An (n x n) matrix.
-    D_f (numpy.ndarray): An (n x m) matrix.
-    x_f, y_f, z_f (numpy.ndarray): Fixed node position vectors.
-
-    Returns:
-    tuple: (x_new, y_new, z_new) - Updated position vectors as NumPy arrays.
-    """
-    # Ensure D is invertible
     if np.linalg.det(D) == 0:
         raise ValueError("Matrix D is singular and cannot be inverted.")
 
-    # Compute the inverse of D
     D_inv = np.linalg.inv(D)
-
-    p_x = p_x.reshape(-1, 1)
-    p_y = p_y.reshape(-1, 1)
-    p_z = p_z.reshape(-1, 1)
-
-    # Compute new position vectors
-    x_new = D_inv @ (p_x - D_f @ x_f)
-    y_new = D_inv @ (p_y - D_f @ y_f)
-    z_new = D_inv @ (p_z - D_f @ z_f)
-
-    return x_new, y_new, z_new
+    return (
+        D_inv @ (p_x - D_f @ x_f),
+        D_inv @ (p_y - D_f @ y_f),
+        D_inv @ (p_z - D_f @ z_f),
+    )
 
 
 def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
-    """
-    Updates the positions of free nodes using x_new, y_new, z_new.
+    updated_nodes = nodes.copy()
+    free_nodes = [node for node in nodes if node not in fixed_nodes]
 
-    Parameters:
-    nodes (dict): Dictionary of nodes {index: (x, y, z)}
-    x_new, y_new, z_new (numpy.ndarray): position vectors for free nodes.
-    fixed_nodes (list): List of fixed node indices.
-
-    Returns:
-    dict: Updated nodes dictionary.
-    """
-    updated_nodes = nodes.copy()  # Copy original dictionary
-    free_nodes = [
-        node for node in nodes if node not in fixed_nodes
-    ]  # Identify free nodes
-
-    # Update only free nodes with new values
     for i, node in enumerate(free_nodes):
-        updated_nodes[node] = (
-            x_new[i].item(),
-            y_new[i].item(),
-            z_new[i].item(),
-        )
+        updated_nodes[node] = (x_new[i][0], y_new[i][0], z_new[i][0])
 
     return updated_nodes
 
 
 def total_len(L):
-    L_diag = np.diag(L)
-
-    return np.dot(L_diag.T, L_diag)
+    return np.dot(np.diag(L).T, np.diag(L))
 
 
-# # Create and diagonalize
-# U, V, W = create_and_diagonalize(C, C_f, x, x_f, y, y_f, z, z_f)
+# Function to plot the network at each step of the iteration
+def plot_network_animated(ax, nodes, elements, fixed_nodes):
+    ax.cla()  # Clear the axes
+    x_vals = [nodes[node][0] for node in nodes]
+    y_vals = [nodes[node][1] for node in nodes]
+    z_vals = [nodes[node][2] for node in nodes]
 
-# # Output the results
-# print("Diagonal matrix U:\n", U)
-# print("Diagonal matrix V:\n", V)
-# print("Diagonal matrix W:\n", W)
+    # Plot nodes
+    ax.scatter(x_vals, y_vals, z_vals, c="b", marker="o", label="Nodes")
 
-
-nodes, elements, external_loads, fixed_nodes = generate_grid(5, spacing=2.5)
-# external_loads[13] = (0.0, 0.0, -1)
-
-print(nodes)
-
-_, L = calculate_element_lengths(nodes, elements)
-L_total = total_len(L)
-
-
-plot_network3D(nodes, elements, fixed_nodes, external_loads)
-
-
-s = np.ones(len(elements))
-q = np.ones(len(elements))
-# q[0] = 5
-# q[3] = 10
-
-
-# Generate connectivity matrix
-connectivity_matrix = create_connectivity_matrix(nodes, elements)
-print("Connectivity Matrix:\n")
-print(connectivity_matrix)
-
-
-C, C_f = partition_connectivity_matrix(connectivity_matrix, nodes, fixed_nodes)
-print("C (Connectivity matrix with free nodes):\n")
-print(C)
-print("Cf (Connectivity matrix with fixed nodes):\n")
-print(C_f)
-
-
-# Compute force components for free nodes
-p_x, p_y, p_z = compute_free_node_forces(nodes, external_loads, fixed_nodes)
-
-# Output results
-print("p_x:", p_x)
-print("p_y:", p_y)
-print("p_z:", p_z)
-
-
-# Set a convergence tolerance
-TOL = 1e-6
-MAX_ITER = 100  # Prevent infinite loops
-
-# Compute initial L
-length, L = calculate_element_lengths(nodes, elements)
-print("Element Lengths:", np.diag(L))
-
-for iteration in range(MAX_ITER):
-    # print(f"\nIteration {iteration + 1}")
-
-    x, y, z, x_f, y_f, z_f = separate_coordinates(nodes, fixed_nodes)
-
-    # Compute force densities
-    q = generate_force_densities(L, s)
-    Q = np.diag(q.flatten())
-
-    # Compute matrices
-    D = C.T @ Q @ C
-    D_f = C.T @ Q @ C_f
-
-    # Compute new positions
-    x_new, y_new, z_new = compute_new_positions(
-        p_x, p_y, p_z, D, D_f, x_f, y_f, z_f
+    # Highlight fixed nodes in red
+    x_fixed = [nodes[node][0] for node in fixed_nodes]
+    y_fixed = [nodes[node][1] for node in fixed_nodes]
+    z_fixed = [nodes[node][2] for node in fixed_nodes]
+    ax.scatter(
+        x_fixed, y_fixed, z_fixed, c="r", marker="x", label="Fixed Nodes"
     )
 
-    # Update node positions
-    updated_nodes = update_nodes(nodes, x_new, y_new, z_new, fixed_nodes)
+    # Plot the elements (edges between nodes)
+    for start, end in elements:
+        x_start, y_start, z_start = nodes[abs(start)]
+        x_end, y_end, z_end = nodes[abs(end)]
+        ax.plot(
+            [x_start, x_end],
+            [y_start, y_end],
+            [z_start, z_end],
+            c="g",
+            linestyle="-",
+            linewidth=1,
+        )
 
-    # Compute new element lengths
-    _, L_new = calculate_element_lengths(updated_nodes, elements)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    ax.legend()
 
-    # Check for convergencexw
 
-    L_total_new = total_len(L_new)
+# Main computation
+def main():
+    # Generate grid
+    nodes, elements, external_loads, fixed_nodes = generate_grid(
+        5, spacing=2.5
+    )
+    print("Nodes:\n", nodes)
 
-    max_error = L_total_new - L_total
+    # Calculate initial element lengths
+    _, L = calculate_element_lengths(nodes, elements)
+    L_total = total_len(L)
 
-    print(
-        f"Iteration {iteration + 1}: \
-            Total Len = {L_total_new},\
-            Max error = {max_error}"
+    # Plot network
+    plot_network3D(nodes, elements, fixed_nodes, external_loads)
+
+    s = np.ones(len(elements))
+    q = np.ones(len(elements))
+
+    # Generate connectivity matrix
+    connectivity_matrix = create_connectivity_matrix(nodes, elements)
+    print("Connectivity Matrix:\n", connectivity_matrix)
+
+    C, C_f = partition_connectivity_matrix(
+        connectivity_matrix, nodes, fixed_nodes
+    )
+    print("C (free nodes):\n", C)
+    print("Cf (fixed nodes):\n", C_f)
+
+    # Compute forces on free nodes
+    p_x, p_y, p_z = compute_free_node_forces(
+        nodes, external_loads, fixed_nodes
+    )
+    print("p_x:", p_x)
+    print("p_y:", p_y)
+    print("p_z:", p_z)
+
+    # Set convergence criteria
+    TOL = 1e-4
+    MAX_ITER = 1000
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Initial plot
+    plot_network_animated(ax, nodes, elements, fixed_nodes)
+
+    # Create a list to hold node positions at each iteration for animation
+    node_positions = []
+    node_positions.append(nodes.copy())  # Store initial position
+
+    # Initialize iteration
+    for iteration in range(MAX_ITER):
+        x, y, z, x_f, y_f, z_f = separate_coordinates(nodes, fixed_nodes)
+
+        # Generate force densities
+        q = generate_force_densities(L, s)
+        Q = np.diag(q.flatten())
+
+        # Compute matrices
+        D = C.T @ Q @ C
+        D_f = C.T @ Q @ C_f
+
+        # Compute new positions
+        x_new, y_new, z_new = compute_new_positions(
+            p_x, p_y, p_z, D, D_f, x_f, y_f, z_f
+        )
+
+        # Update nodes
+        updated_nodes = update_nodes(nodes, x_new, y_new, z_new, fixed_nodes)
+
+        # Check for convergence
+        _, L_new = calculate_element_lengths(updated_nodes, elements)
+        L_total_new = total_len(L_new)
+        max_error = L_total_new - L_total
+
+        print(
+            f"Iteration {iteration + 1}: Total Len = {L_total_new}, Max error = {max_error}"
+        )
+
+        if np.abs(max_error) < TOL:
+            print("Convergence achieved!")
+            break
+
+        # Update for next iteration
+        nodes = updated_nodes
+        L = L_new
+        L_total = L_total_new
+
+        node_positions.append(nodes.copy())
+
+    else:
+        print("Max iterations reached without convergence.")
+
+    # Define the update function for the animation
+    def update(frame):
+        plot_network_animated(ax, node_positions[frame], elements, fixed_nodes)
+
+    # Create the animation
+    _ = animation.FuncAnimation(
+        fig, update, frames=len(node_positions), interval=500
     )
 
-    if np.abs(max_error) < TOL:
-        print("Convergence achieved!")
-        break
+    # Display the animation
+    plt.show()
 
-    # Update L for the next iteration
-    nodes = updated_nodes
-    L = L_new
-    L_total = L_total_new
+    # Final output
+    print("\nFinal Updated Nodes:")
+    for node, coords in updated_nodes.items():
+        print(f"{node}: {coords}")
 
-    # plot_network3D_2(nodes, elements, fixed_nodes, external_loads)
+    print("Final Element Lengths:", np.diag(L_new))
 
-else:
-    print("Max iterations reached without convergence.")
+    f = np.dot(L_new, q)
+    print("Final Element Forces:", f)
+    print("Final Element Forces (normalized):", f / np.average(f))
 
-# Output final results
-print("\nFinal Updated Nodes:")
-for node, coords in updated_nodes.items():
-    print(f"{node}: {coords}")
+    # Plot final network
+    plot_network3D(updated_nodes, elements, fixed_nodes, external_loads)
 
-print("Final Element Lengths:", np.diag(L_new))
 
-f = np.dot(L_new, q)
-print("Final Element Forces:", f)
-print("Final Element Forces (normalized):", f / np.average(f))
-
-# Plot the network
-plot_network3D(updated_nodes, elements, fixed_nodes, external_loads)
+if __name__ == "__main__":
+    main()
