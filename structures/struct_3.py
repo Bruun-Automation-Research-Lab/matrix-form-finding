@@ -1,19 +1,20 @@
 # "An outline of the natural force density method and its
 #  extension to quadrilateral elements" Structure
 
-
 import numpy as np
 
 
-def generate_struct(N, spacing=2.0):
+def generate_struct(N=5, spacing=2.0):
     nodes = {}
-    elements = []
-    fixed_nodes = []
+    elements = {}
+    elements_preload = {}
+    nodes_load = {}
+    nodes_fixed = {}
 
     # Define corner heights for interpolation
     corner_z = np.array([[-1.5, 1.5], [1.5, -1.5]])
 
-    # Generate nodes
+    # Generate nodes (each node as [x, y, z])
     node_id = 1
     for i in range(N):
         for j in range(N):
@@ -29,20 +30,30 @@ def generate_struct(N, spacing=2.0):
 
             node_id += 1
 
-    # Fix only the corner nodes
+    # Define fixed nodes (corners)
     corner_ids = [1, N, N * (N - 1) + 1, N * N]  # IDs of the four corners
-    fixed_nodes = corner_ids
+    nodes_fixed = {node_id: 1 for node_id in corner_ids}  # 1 for fixed nodes
+    # Mark other nodes as free (0)
+    for node_id in nodes:
+        if node_id not in nodes_fixed:
+            nodes_fixed[node_id] = 0
 
     # Define external loads (zero by default)
-    external_loads = {node_id: (0.0, 0.0, 0.0) for node_id in nodes}
+    nodes_load = {node_id: (0.0, 0.0, 0.0) for node_id in nodes}
 
     # Generate elements (grid connectivity)
-    elements = [
-        ((i * N + j + 1), (i + di) * N + (j + dj) + 1)
-        for i in range(N)
-        for j in range(N)
-        for di, dj in [(1, 0), (0, 1)]
-        if i + di < N and j + dj < N
-    ]
+    element_id = 1
+    for i in range(N):
+        for j in range(N):
+            if i + 1 < N:  # Horizontal connections
+                elements[element_id] = ((i * N + j + 1), (i + 1) * N + j + 1)
+                element_id += 1
+            if j + 1 < N:  # Vertical connections
+                elements[element_id] = ((i * N + j + 1), i * N + (j + 1) + 1)
+                element_id += 1
 
-    return nodes, elements, external_loads, fixed_nodes
+    # Define elements preload (zero by default)
+    for element_id in elements:
+        elements_preload[element_id] = 0  # Preload force for each element
+
+    return nodes, elements, elements_preload, nodes_load, nodes_fixed
