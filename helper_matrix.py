@@ -35,32 +35,6 @@ def generate_struct_arrays(
     )
 
 
-# 1. Create the connectivity matrix
-def create_connectivity_matrix_old(nodes, elements):
-    num_nodes = len(nodes)
-    num_elements = len(elements)
-
-    connectivity_matrix = np.zeros((num_elements, num_nodes), dtype=int)
-
-    for i, (start, end) in enumerate(elements):
-        start_idx, end_idx = (
-            abs(start) - 1,
-            abs(end) - 1,
-        )  # Convert to 0-based index
-        if start < 0:
-            (
-                connectivity_matrix[i, end_idx],
-                connectivity_matrix[i, start_idx],
-            ) = (1, -1)
-        else:
-            (
-                connectivity_matrix[i, start_idx],
-                connectivity_matrix[i, end_idx],
-            ) = (1, -1)
-
-    return connectivity_matrix
-
-
 def create_connectivity_matrix(nodes, elements):
     num_nodes = nodes.shape[0]
     num_elements = elements.shape[0]
@@ -78,19 +52,6 @@ def create_connectivity_matrix(nodes, elements):
     return connectivity_matrix
 
 
-def partition_connectivity_matrix_old(connectivity_matrix, nodes, fixed_nodes):
-    free_nodes = [node for node in nodes if node not in fixed_nodes]
-    all_nodes = list(nodes.keys())
-
-    free_node_indices = [all_nodes.index(node) for node in free_nodes]
-    fixed_node_indices = [all_nodes.index(node) for node in fixed_nodes]
-
-    C = connectivity_matrix[:, free_node_indices]
-    Cf = connectivity_matrix[:, fixed_node_indices]
-
-    return C, Cf
-
-
 def partition_connectivity_matrix(connectivity_matrix, fixed_nodes):
     # Flatten the fixed_nodes array to 1D
     fixed_nodes_mask = fixed_nodes.flatten()
@@ -106,14 +67,53 @@ def partition_connectivity_matrix(connectivity_matrix, fixed_nodes):
     return C, Cf
 
 
-def create_length_matrix_old(nodes, elements):
-    lengths = [
-        np.linalg.norm(np.array(nodes[abs(start)]) - np.array(nodes[abs(end)]))
-        for start, end in elements
-    ]
-    l_vec = np.array(lengths).reshape(-1, 1)
-    L_mat = np.diag(l_vec.flatten())
-    return l_vec, L_mat
+def partition_nodes_coordinates(nodes, fixed_nodes):
+    # Get the indices of fixed and free nodes based on fixed_nodes mask
+    fixed_nodes_mask = fixed_nodes.flatten()
+
+    # Indices of free and fixed nodes
+    free_node_indices = np.where(fixed_nodes_mask == 0)[0]
+    fixed_node_indices = np.where(fixed_nodes_mask == 1)[0]
+
+    # Separate coordinates for free and fixed nodes
+    free_coords = nodes[free_node_indices]
+    fixed_coords = nodes[fixed_node_indices]
+
+    # Separate into x, y, z components for both free and fixed nodes
+    free_x, free_y, free_z = (
+        free_coords[:, 0],
+        free_coords[:, 1],
+        free_coords[:, 2],
+    )
+    fixed_x, fixed_y, fixed_z = (
+        fixed_coords[:, 0],
+        fixed_coords[:, 1],
+        fixed_coords[:, 2],
+    )
+
+    return (
+        free_x.reshape(-1, 1),
+        free_y.reshape(-1, 1),
+        free_z.reshape(-1, 1),
+        fixed_x.reshape(-1, 1),
+        fixed_y.reshape(-1, 1),
+        fixed_z.reshape(-1, 1),
+    )
+
+
+def create_node_force_vectors(nodes_load, nodes_fixed):
+    # Flatten fixed_nodes to a 1D array to easily index free/fixed nodes
+    fixed_nodes_mask = nodes_fixed.flatten()
+
+    # Get the indices of free nodes (those with fixed_nodes_mask == 0)
+    free_node_indices = np.where(fixed_nodes_mask == 0)[0]
+
+    # Extract the loads for free nodes
+    p_x = nodes_load[free_node_indices, 0]
+    p_y = nodes_load[free_node_indices, 1]
+    p_z = nodes_load[free_node_indices, 2]
+
+    return p_x.reshape(-1, 1), p_y.reshape(-1, 1), p_z.reshape(-1, 1)
 
 
 def create_length_matrix(nodes, elements):

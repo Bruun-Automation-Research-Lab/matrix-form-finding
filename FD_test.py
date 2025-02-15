@@ -9,33 +9,12 @@ from helper_matrix import (
     generate_struct_arrays,
     create_connectivity_matrix,
     create_length_matrix,
+    create_node_force_vectors,
     partition_connectivity_matrix,
+    partition_nodes_coordinates,
 )
 from helper_plot import plot_network3D, plot_network_animated
 from helper_log import setup_logging
-
-
-def separate_coordinates(nodes, fixed_nodes):
-    free_coords, fixed_coords = [], []
-
-    for node, (x, y, z) in nodes.items():
-        coords = (x, y, z)
-        (fixed_coords if node in fixed_nodes else free_coords).append(coords)
-
-    # Separate into x, y, z for both free and fixed nodes
-    free_x, free_y, free_z = zip(*free_coords) if free_coords else ([], [], [])
-    fixed_x, fixed_y, fixed_z = (
-        zip(*fixed_coords) if fixed_coords else ([], [], [])
-    )
-
-    return (
-        np.array(free_x).reshape(-1, 1),
-        np.array(free_y).reshape(-1, 1),
-        np.array(free_z).reshape(-1, 1),
-        np.array(fixed_x).reshape(-1, 1),
-        np.array(fixed_y).reshape(-1, 1),
-        np.array(fixed_z).reshape(-1, 1),
-    )
 
 
 def generate_force_densities(L, s):
@@ -45,14 +24,21 @@ def generate_force_densities(L, s):
     return np.linalg.solve(L, s)
 
 
-def compute_free_node_forces(nodes, external_loads, fixed_nodes):
-    free_nodes = [node for node in nodes if node not in fixed_nodes]
+def nodes_delta(p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f):
+    # Compute the right-hand side vector (p - D * x - D_f * x_f)
+    rhs_x = p_x - D @ x - D_f @ x_f
+    rhs_y = p_y - D @ y - D_f @ y_f
+    rhs_z = p_z - D @ z - D_f @ z_f
 
-    p_x = np.array([external_loads[node][0] for node in free_nodes])
-    p_y = np.array([external_loads[node][1] for node in free_nodes])
-    p_z = np.array([external_loads[node][2] for node in free_nodes])
+    # Compute the inverse of D
+    D_inv = np.linalg.inv(D)
 
-    return p_x.reshape(-1, 1), p_y.reshape(-1, 1), p_z.reshape(-1, 1)
+    # Solve for the displacements (delta)
+    delta_x = D_inv @ rhs_x
+    delta_y = D_inv @ rhs_y
+    delta_z = D_inv @ rhs_z
+
+    return delta_x, delta_y, delta_z
 
 
 def compute_new_positions(p_x, p_y, p_z, D, D_f, x_f, y_f, z_f):
@@ -138,21 +124,14 @@ def main(debug=False):
         nodes, elements, elements_preload, nodes_load, nodes_fixed
     )
 
-    logging.debug("\nNodes:\n %s", n)
-    logging.debug("\nElements:\n %s", e)
-    logging.debug("\nElement Loads:\n %s", e_l)
-    logging.debug("\nNodal Loads:\n %s", n_l)
-    logging.debug("\nFixed Nodes:\n %s", n_f)
+    # Plot network
+    plot_network3D(n, e, n_l, n_f)
 
     # Calculate initial element lengths
     l_vec, L = create_length_matrix(n, e)
     L_total = np.sum(l_vec**2)
 
-    # Plot network
-    plot_network3D(n, e, n_l, n_f)
-
     s = np.ones(len(elements))
-    print(s)
     # s = generate_s(elements, 20, 5)
 
     q = np.ones(len(elements))
@@ -160,29 +139,21 @@ def main(debug=False):
 
     # Generate connectivity matrix
     connectivity_matrix = create_connectivity_matrix(n, e)
-    logging.debug("\nConnectivity Matrix:\n %s", connectivity_matrix)
 
     C, C_f = partition_connectivity_matrix(connectivity_matrix, n_f)
-    logging.debug("\nC (free nodes):\n %s", C)
-    logging.debug("\nCf (fixed nodes):\n %s", C_f)
 
     # Compute forces on free nodes
-    p_x, p_y, p_z = compute_free_node_forces(
-        nodes, external_loads, fixed_nodes
-    )
-
-    # Set convergence criteria
-    TOL = 1e-4
-    MAX_ITER = 1000
+    p_x, p_y, p_z = create_node_force_vectors(n_l, n_f)
 
     # Create a list to hold node positions at each iteration for animation
     node_positions = []
-    node_positions.append(nodes.copy())  # Store initial position
+    node_positions.append(n)  # Store initial position
 
-    logging.debug("Nodes:\n %s", nodes)
-    logging.debug("Elements:\n %s", elements)
-    logging.debug("External Loads:\n %s", external_loads)
-    logging.debug("Fixed Nodes:\n %s", fixed_nodes)
+    logging.debug("\nNodes:\n %s", n)
+    logging.debug("\nElements:\n %s", e)
+    logging.debug("\nElement Loads:\n %s", e_l)
+    logging.debug("\nNodal Loads:\n %s", n_l)
+    logging.debug("\nFixed Nodes:\n %s", n_f)
 
     logging.debug("\nConnectivity Matrix:\n %s", connectivity_matrix)
     logging.debug("\nC (free nodes):\n %s", C)
@@ -191,9 +162,13 @@ def main(debug=False):
     logging.debug("\np_y:\n %s", p_y)
     logging.debug("\np_z:\n %s", p_z)
 
+    # Set convergence criteria
+    TOL = 1e-4
+    MAX_ITER = 1000
+
     # Initialize iteration
     for iteration in range(MAX_ITER):
-        x, y, z, x_f, y_f, z_f = separate_coordinates(nodes, fixed_nodes)
+        x, y, z, x_f, y_f, z_f = partition_nodes_coordinates(n, n_f)
 
         # Generate force densities
         # q = generate_force_densities(L, s)
@@ -204,6 +179,11 @@ def main(debug=False):
         D_f = C.T @ Q @ C_f
 
         # Compute new positions
+
+        d_x, d_y, d_z = nodes_delta(
+            p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f
+        )
+
         x_new, y_new, z_new = compute_new_positions(
             p_x, p_y, p_z, D, D_f, x_f, y_f, z_f
         )
