@@ -3,7 +3,7 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from structures.struct_3 import generate_struct
+from structures.struct_2 import generate_struct
 from plotting import plot_network3D, plot_network_animated
 
 
@@ -181,11 +181,11 @@ def generate_s(elements, N, ratio_outer_to_inner=1):
 def main(debug=False):
     setup_logging(debug)
     # Generate grid
-    nodes, elements, external_loads, fixed_nodes = generate_struct(
-        20, spacing=0.5
-    )
+    # nodes, elements, external_loads, fixed_nodes = generate_struct(
+    #     20, spacing=0.5
+    # )
 
-    # nodes, elements, external_loads, fixed_nodes = generate_struct()
+    nodes, elements, external_loads, fixed_nodes = generate_struct(5)
 
     # Calculate initial element lengths
     _, L = calculate_element_lengths(nodes, elements)

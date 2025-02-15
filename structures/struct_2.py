@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def generate_struct(N, spacing=2.0):
+def generate_struct(N, spacing=2.5):
     nodes = {}
     elements = []
     fixed_nodes = []
