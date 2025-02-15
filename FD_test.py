@@ -95,10 +95,6 @@ def generate_s(elements, N, ratio_outer_to_inner=1):
 # Main computation
 def main(debug=False):
     setup_logging(debug)
-    # Generate grid
-    # nodes, elements, external_loads, fixed_nodes = generate_struct(
-    #     5, spacing=0.5
-    # )
 
     # nodes, elements, external_loads, fixed_nodes = generate_struct(5)
     nodes, elements, elements_preload, nodes_load, nodes_fixed = (
@@ -115,12 +111,6 @@ def main(debug=False):
     # Calculate initial element lengths
     l_vec, L = create_length_matrix(n, e)
     L_total = np.sum(l_vec**2)
-
-    # s = np.ones(len(elements))
-    # s = generate_s(elements, 20, 5)
-
-    q = np.ones(len(elements))
-    # q = generate_s(elements, 20, 1)
 
     # Generate connectivity matrix
     connectivity_matrix = create_connectivity_matrix(n, e)
@@ -151,6 +141,17 @@ def main(debug=False):
     TOL = 1e-4
     MAX_ITER = 1000
 
+    fixed_q = True
+    # Create q or s as a NumPy array
+    values = np.ones(len(e))  # Initialize with ones
+
+    if fixed_q:
+        q = values
+        # q = generate_s(elements, 20, 1)
+    else:
+        s = values
+        # s = generate_s(elements, 20, 5)
+
     # Initialize iteration
     for iteration in range(MAX_ITER):
         logging.debug("\n######################")
@@ -160,7 +161,7 @@ def main(debug=False):
         x, y, z, x_f, y_f, z_f = partition_nodes_coordinates(n, n_f)
 
         # Generate force densities
-        # q = generate_force_densities(L, s)
+        q = generate_force_densities(L, s)
         Q = np.diag(q.flatten())
 
         # Compute matrices
@@ -203,7 +204,7 @@ def main(debug=False):
 
         # Update for next iteration
         n = n_new
-        # L = L_new
+        L = L_new
         L_total = L_total_new
 
         # plot_network3D(n, e, n_l, n_f)
