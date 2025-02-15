@@ -54,60 +54,53 @@ def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
     plt.show()
 
 
-def plot_network3D_old(nodes, elements, fixed_nodes, external_loads):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
+def plot_network_animated(ax, nodes, elements, fixed_nodes):
+    ax.cla()  # Clear the axes
 
-    # Plot elements
-    for n1, n2 in elements:
-        x_vals = [nodes[n1][0], nodes[n2][0]]
-        y_vals = [nodes[n1][1], nodes[n2][1]]
-        z_vals = [nodes[n1][2], nodes[n2][2]]
-        ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.5)
+    # Extract x, y, z coordinates from the nodes array
+    x_vals, y_vals, z_vals = nodes[:, 0], nodes[:, 1], nodes[:, 2]
 
     # Plot nodes
-    for node_id, (x, y, z) in nodes.items():
-        if node_id in fixed_nodes:
-            ax.scatter(
-                x,
-                y,
-                z,
-                color="blue",
-                s=50,
-                label="Fixed" if node_id == fixed_nodes[0] else "",
-            )
-        elif any(val != 0.0 for val in external_loads[node_id]):
-            ax.scatter(
-                x,
-                y,
-                z,
-                color="red",
-                s=50,
-                label=(
-                    "Loaded"
-                    if node_id == list(external_loads.keys())[0]
-                    else ""
-                ),
-            )
-        else:
-            ax.scatter(
-                x,
-                y,
-                z,
-                color="black",
-                s=5,
-                label="Normal" if node_id == 1 else "",
-            )
+    ax.scatter(x_vals, y_vals, z_vals, c="b", marker=".", label="Nodes")
+
+    # Highlight fixed nodes in red
+    fixed_mask = (
+        fixed_nodes.flatten() == 1
+    )  # Assuming fixed_nodes is a 1D array with 0/1 values
+    x_fixed, y_fixed, z_fixed = (
+        x_vals[fixed_mask],
+        y_vals[fixed_mask],
+        z_vals[fixed_mask],
+    )
+    ax.scatter(
+        x_fixed, y_fixed, z_fixed, c="r", marker="x", label="Fixed Nodes"
+    )
+
+    # Plot the elements (edges between nodes)
+    for start, end in elements:
+        x_start, y_start, z_start = nodes[
+            abs(start) - 1
+        ]  # Adjust for 0-based indexing
+        x_end, y_end, z_end = nodes[
+            abs(end) - 1
+        ]  # Adjust for 0-based indexing
+        ax.plot(
+            [x_start, x_end],
+            [y_start, y_end],
+            [z_start, z_end],
+            c="g",
+            linestyle="-",
+            linewidth=1,
+        )
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
-    plt.legend()
-    plt.show()
+    ax.legend()
 
 
 # Function to plot the network at each step of the iteration
-def plot_network_animated(ax, nodes, elements, fixed_nodes):
+def plot_network_animated_old(ax, nodes, elements, fixed_nodes):
     ax.cla()  # Clear the axes
     x_vals = [nodes[node][0] for node in nodes]
     y_vals = [nodes[node][1] for node in nodes]

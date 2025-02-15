@@ -41,34 +41,19 @@ def nodes_delta(p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f):
     return delta_x, delta_y, delta_z
 
 
-def compute_new_positions(p_x, p_y, p_z, D, D_f, x_f, y_f, z_f):
-    if np.linalg.det(D) == 0:
-        raise ValueError("Matrix D is singular and cannot be inverted.")
+def nodes_update(nodes, d_x, d_y, d_z, n_f):
+    # Flatten the free_node_mask to match the shape of n_f
+    free_node_mask = n_f.flatten() == 0
 
-    D_inv = np.linalg.inv(D)
-    return (
-        D_inv @ (p_x - D_f @ x_f),
-        D_inv @ (p_y - D_f @ y_f),
-        D_inv @ (p_z - D_f @ z_f),
-    )
+    # Create a copy of the original nodes array to avoid in-place modification
+    updated_nodes = np.copy(nodes)
 
-
-def update_nodes(nodes, x_new, y_new, z_new, fixed_nodes):
-    updated_nodes = nodes.copy()
-    free_nodes = [node for node in nodes if node not in fixed_nodes]
-
-    for i, node in enumerate(free_nodes):
-        updated_nodes[node] = (
-            float(x_new[i]),
-            float(y_new[i]),
-            float(z_new[i]),
-        )
+    # Apply displacement to free nodes
+    updated_nodes[free_node_mask, 0] += d_x.flatten()  # Update x-coordinates
+    updated_nodes[free_node_mask, 1] += d_y.flatten()  # Update y-coordinates
+    updated_nodes[free_node_mask, 2] += d_z.flatten()  # Update z-coordinates
 
     return updated_nodes
-
-
-def total_len(L):
-    return np.dot(np.diag(L).T, np.diag(L))
 
 
 def generate_s(elements, N, ratio_outer_to_inner=1):
@@ -168,10 +153,14 @@ def main(debug=False):
 
     # Initialize iteration
     for iteration in range(MAX_ITER):
+        logging.debug("\n######################")
+        logging.debug("# ITERATION: %s", iteration)
+        logging.debug("######################")
+
         x, y, z, x_f, y_f, z_f = partition_nodes_coordinates(n, n_f)
 
         # Generate force densities
-        # q = generate_force_densities(L, s)
+        q = generate_force_densities(L, s)
         Q = np.diag(q.flatten())
 
         # Compute matrices
@@ -179,22 +168,19 @@ def main(debug=False):
         D_f = C.T @ Q @ C_f
 
         # Compute new positions
-
         d_x, d_y, d_z = nodes_delta(
             p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f
         )
 
-        x_new, y_new, z_new = compute_new_positions(
-            p_x, p_y, p_z, D, D_f, x_f, y_f, z_f
-        )
-
         # Update nodes
-        updated_nodes = update_nodes(nodes, x_new, y_new, z_new, fixed_nodes)
+        n_new = nodes_update(n, d_x, d_y, d_z, n_f)
 
         # Check for convergence
-        _, L_new = create_length_matrix(updated_nodes, elements)
-        L_total_new = total_len(L_new)
+        l_vec, L_new = create_length_matrix(n_new, e)
+        L_total_new = np.sum(l_vec**2)
         max_error = L_total_new - L_total
+
+        node_positions.append(n_new)
 
         print(
             f"Iteration {iteration + 1}: "
@@ -202,25 +188,32 @@ def main(debug=False):
             f"Max error = {max_error:.3f}"
         )
 
+        logging.debug("\nd_x:\n %s", d_x)
+        logging.debug("\nd_y:\n %s", d_y)
+        logging.debug("\nd_z:\n %s", d_z)
+
+        logging.debug("\nnodes new:\n %s", n_new)
+
+        logging.debug(f"Total Len = {L_total_new:.3f}, ")
+        logging.debug(f"Max error = {max_error:.3f}")
+
         if np.abs(max_error) < TOL:
             print("Convergence achieved!")
             break
 
         # Update for next iteration
-        nodes = updated_nodes
+        n = n_new
         L = L_new
         L_total = L_total_new
 
-        node_positions.append(nodes.copy())
-
-        # plot_network3D(nodes, elements, fixed_nodes, external_loads)
+        # plot_network3D(n, e, n_l, n_f)
 
     else:
         print("Max iterations reached without convergence.")
 
     # Animation
     def update(frame):
-        plot_network_animated(ax, node_positions[frame], elements, fixed_nodes)
+        plot_network_animated(ax, node_positions[frame], e, n_f)
 
     # Create the animation
     fig = plt.figure()
@@ -234,14 +227,18 @@ def main(debug=False):
 
     f = np.dot(L_new, q)
 
-    logging.debug("\nFinal Nodes:\n %s", updated_nodes)
+    logging.debug("\n######################")
+    logging.debug("# COMPLETED")
+    logging.debug("######################")
+
+    logging.debug("\nFinal Nodes:\n %s", n_new)
     logging.debug("\nFinal Element Lengths:\n %s", np.diag(L_new))
     logging.debug("\nFinal Element Forces:\n %s", f)
     logging.debug("\nFinal Element Force Densities:\n %s", q)
     logging.debug("\nFinal Element Forces (f/f_avg):\n %s", f / np.average(f))
 
     # Plot final network
-    plot_network3D(updated_nodes, elements, fixed_nodes, external_loads)
+    plot_network3D(n, e, n_l, n_f)
 
 
 if __name__ == "__main__":
