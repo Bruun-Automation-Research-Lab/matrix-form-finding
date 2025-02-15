@@ -4,7 +4,7 @@ import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 
 from structures.struct_1 import generate_struct
-from plotting import plot_network3D
+from helper_plot import plot_network3D
 
 
 class DynamicRelaxation:

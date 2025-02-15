@@ -3,62 +3,16 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-from structures.struct_3 import generate_struct
-from plotting import plot_network3D, plot_network_animated
-
-
-# Set up logging
-def setup_logging(debug=False):
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-
-    if debug:
-        logging.basicConfig(
-            filename="./debug_log.txt",
-            level=logging.DEBUG,
-            format="%(message)s",
-            filemode="w",
-        )
-    else:
-        logging.basicConfig(level=logging.INFO)
-
-
-# 1. Create the connectivity matrix
-def create_connectivity_matrix(nodes, elements):
-    num_nodes = len(nodes)
-    num_elements = len(elements)
-
-    connectivity_matrix = np.zeros((num_elements, num_nodes), dtype=int)
-
-    for i, (start, end) in enumerate(elements):
-        start_idx, end_idx = (
-            abs(start) - 1,
-            abs(end) - 1,
-        )  # Convert to 0-based index
-        if start < 0:
-            (
-                connectivity_matrix[i, end_idx],
-                connectivity_matrix[i, start_idx],
-            ) = (1, -1)
-        else:
-            (
-                connectivity_matrix[i, start_idx],
-                connectivity_matrix[i, end_idx],
-            ) = (1, -1)
-
-    return connectivity_matrix
-
-
-def partition_connectivity_matrix(connectivity_matrix, nodes, fixed_nodes):
-    free_nodes = [node for node in nodes if node not in fixed_nodes]
-    all_nodes = list(nodes.keys())
-
-    free_node_indices = [all_nodes.index(node) for node in free_nodes]
-    fixed_node_indices = [all_nodes.index(node) for node in fixed_nodes]
-
-    C = connectivity_matrix[:, free_node_indices]
-    Cf = connectivity_matrix[:, fixed_node_indices]
-
-    return C, Cf
+# from structures.struct_3 import generate_struct
+from structures.struct_2 import generate_struct, generate_struct2
+from helper_matrix import (
+    generate_struct_arrays,
+    create_connectivity_matrix,
+    create_length_matrix,
+    partition_connectivity_matrix,
+)
+from helper_plot import plot_network3D, plot_network_animated
+from helper_log import setup_logging
 
 
 def separate_coordinates(nodes, fixed_nodes):
@@ -82,16 +36,6 @@ def separate_coordinates(nodes, fixed_nodes):
         np.array(fixed_y).reshape(-1, 1),
         np.array(fixed_z).reshape(-1, 1),
     )
-
-
-def calculate_element_lengths(nodes, elements):
-    lengths = [
-        np.linalg.norm(np.array(nodes[abs(start)]) - np.array(nodes[abs(end)]))
-        for start, end in elements
-    ]
-    l_vec = np.array(lengths).reshape(-1, 1)
-    L_mat = np.diag(l_vec.flatten())
-    return l_vec, L_mat
 
 
 def generate_force_densities(L, s):
@@ -181,31 +125,46 @@ def generate_s(elements, N, ratio_outer_to_inner=1):
 def main(debug=False):
     setup_logging(debug)
     # Generate grid
-    nodes, elements, external_loads, fixed_nodes = generate_struct(
-        20, spacing=0.5
+    # nodes, elements, external_loads, fixed_nodes = generate_struct(
+    #     5, spacing=0.5
+    # )
+
+    # nodes, elements, external_loads, fixed_nodes = generate_struct(5)
+    nodes, elements, elements_preload, nodes_load, nodes_fixed = (
+        generate_struct2()
     )
 
-    # nodes, elements, external_loads, fixed_nodes = generate_struct()
+    n, e, e_l, n_l, n_f = generate_struct_arrays(
+        nodes, elements, elements_preload, nodes_load, nodes_fixed
+    )
+
+    logging.debug("\nNodes:\n %s", n)
+    logging.debug("\nElements:\n %s", e)
+    logging.debug("\nElement Loads:\n %s", e_l)
+    logging.debug("\nNodal Loads:\n %s", n_l)
+    logging.debug("\nFixed Nodes:\n %s", n_f)
 
     # Calculate initial element lengths
-    _, L = calculate_element_lengths(nodes, elements)
-    L_total = total_len(L)
+    l_vec, L = create_length_matrix(n, e)
+    L_total = np.sum(l_vec**2)
 
     # Plot network
-    plot_network3D(nodes, elements, fixed_nodes, external_loads)
+    plot_network3D(n, e, n_l, n_f)
 
-    # s = np.ones(len(elements))
+    s = np.ones(len(elements))
+    print(s)
     # s = generate_s(elements, 20, 5)
 
     q = np.ones(len(elements))
-    q = generate_s(elements, 20, 1)
+    # q = generate_s(elements, 20, 1)
 
     # Generate connectivity matrix
-    connectivity_matrix = create_connectivity_matrix(nodes, elements)
+    connectivity_matrix = create_connectivity_matrix(n, e)
+    logging.debug("\nConnectivity Matrix:\n %s", connectivity_matrix)
 
-    C, C_f = partition_connectivity_matrix(
-        connectivity_matrix, nodes, fixed_nodes
-    )
+    C, C_f = partition_connectivity_matrix(connectivity_matrix, n_f)
+    logging.debug("\nC (free nodes):\n %s", C)
+    logging.debug("\nCf (fixed nodes):\n %s", C_f)
 
     # Compute forces on free nodes
     p_x, p_y, p_z = compute_free_node_forces(
@@ -221,6 +180,10 @@ def main(debug=False):
     node_positions.append(nodes.copy())  # Store initial position
 
     logging.debug("Nodes:\n %s", nodes)
+    logging.debug("Elements:\n %s", elements)
+    logging.debug("External Loads:\n %s", external_loads)
+    logging.debug("Fixed Nodes:\n %s", fixed_nodes)
+
     logging.debug("\nConnectivity Matrix:\n %s", connectivity_matrix)
     logging.debug("\nC (free nodes):\n %s", C)
     logging.debug("\nCf (fixed nodes):\n %s", C_f)
@@ -249,7 +212,7 @@ def main(debug=False):
         updated_nodes = update_nodes(nodes, x_new, y_new, z_new, fixed_nodes)
 
         # Check for convergence
-        _, L_new = calculate_element_lengths(updated_nodes, elements)
+        _, L_new = create_length_matrix(updated_nodes, elements)
         L_total_new = total_len(L_new)
         max_error = L_total_new - L_total
 
@@ -270,7 +233,7 @@ def main(debug=False):
 
         node_positions.append(nodes.copy())
 
-        plot_network3D(nodes, elements, fixed_nodes, external_loads)
+        # plot_network3D(nodes, elements, fixed_nodes, external_loads)
 
     else:
         print("Max iterations reached without convergence.")

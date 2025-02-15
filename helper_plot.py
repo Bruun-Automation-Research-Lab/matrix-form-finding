@@ -3,7 +3,58 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def plot_network3D(nodes, elements, fixed_nodes, external_loads):
+def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+
+    # Plot elements
+    for n1, n2 in elements - 1:  # Convert 1-based to 0-based indexing
+        x_vals = [nodes[n1, 0], nodes[n2, 0]]
+        y_vals = [nodes[n1, 1], nodes[n2, 1]]
+        z_vals = [nodes[n1, 2], nodes[n2, 2]]
+        ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.5)
+
+    # Plot nodes
+    for i, (x, y, z) in enumerate(nodes):
+        if nodes_fixed[i]:  # Fixed node
+            ax.scatter(
+                x,
+                y,
+                z,
+                color="blue",
+                s=50,
+                label=(
+                    "Fixed"
+                    if i == np.where(nodes_fixed[:, 0] == 1)[0][0]
+                    else ""
+                ),
+            )
+        elif np.any(nodes_loads[i] != 0):  # Loaded node
+            ax.scatter(
+                x,
+                y,
+                z,
+                color="red",
+                s=50,
+                label=(
+                    "Loaded"
+                    if i == np.where(np.any(nodes_loads != 0, axis=1))[0][0]
+                    else ""
+                ),
+            )
+        else:  # Normal node
+            ax.scatter(
+                x, y, z, color="black", s=5, label="Normal" if i == 0 else ""
+            )
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    plt.legend()
+    plt.show()
+
+
+def plot_network3D_old(nodes, elements, fixed_nodes, external_loads):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
 
