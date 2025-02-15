@@ -245,6 +245,10 @@ def main(debug=False):
             p_x, p_y, p_z, D, D_f, x_f, y_f, z_f
         )
 
+        logging.debug("\nx_new:\n %s", x_new)
+        logging.debug("\ny_new:\n %s", y_new)
+        logging.debug("\nz_new:\n %s", z_new)
+
         # Update nodes
         updated_nodes = update_nodes(nodes, x_new, y_new, z_new, fixed_nodes)
 
