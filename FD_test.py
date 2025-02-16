@@ -4,12 +4,13 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 # from structures.struct_3 import generate_struct
-from structures.struct_3 import generate_struct
+from structures.struct_2 import generate_struct
 from helper_matrix import (
     generate_struct_arrays,
     create_connectivity_matrix,
     create_length_matrix,
     create_node_force_vectors,
+    create_force_density_matrix,
     partition_connectivity_matrix,
     partition_nodes_coordinates,
 )
@@ -56,6 +57,10 @@ def nodes_update(nodes, d_x, d_y, d_z, n_f):
     return updated_nodes
 
 
+def solve_FD():
+    pass
+
+
 def generate_s(elements, N, ratio_outer_to_inner=1):
     """
     Generate the s array where elements on the boundary have a value based on
@@ -93,7 +98,7 @@ def generate_s(elements, N, ratio_outer_to_inner=1):
 
 
 # Main computation
-def main(debug=False):
+def main(debug=False, solver="FD_fixed"):
     setup_logging(debug)
 
     # nodes, elements, external_loads, fixed_nodes = generate_struct(5)
@@ -126,9 +131,9 @@ def main(debug=False):
 
     logging.debug("\nNodes:\n %s", n)
     logging.debug("\nElements:\n %s", e)
-    logging.debug("\nElement Loads:\n %s", e_l)
-    logging.debug("\nNodal Loads:\n %s", n_l)
-    logging.debug("\nFixed Nodes:\n %s", n_f)
+    logging.debug("\nElements (Preload):\n %s", e_l)
+    logging.debug("\nNodes (Loads):\n %s", n_l)
+    logging.debug("\nNodes (Fixed):\n %s", n_f)
 
     logging.debug("\nConnectivity Matrix:\n %s", connectivity_matrix)
     logging.debug("\nC (free nodes):\n %s", C)
@@ -138,19 +143,10 @@ def main(debug=False):
     logging.debug("\np_z:\n %s", p_z)
 
     # Set convergence criteria
-    TOL = 1e-4
+    TOL = 1e-6
     MAX_ITER = 1000
 
-    fixed_q = True
-    # Create q or s as a NumPy array
-    values = np.ones(len(e))  # Initialize with ones
-
-    if fixed_q:
-        q = values
-        # q = generate_s(elements, 20, 1)
-    else:
-        s = values
-        # s = generate_s(elements, 20, 5)
+    FD_factor = 2
 
     # Initialize iteration
     for iteration in range(MAX_ITER):
@@ -159,19 +155,37 @@ def main(debug=False):
         logging.debug("######################")
 
         x, y, z, x_f, y_f, z_f = partition_nodes_coordinates(n, n_f)
+        l_vec, L = create_length_matrix(n, e)
 
-        # Generate force densities
-        q = generate_force_densities(L, s)
-        Q = np.diag(q.flatten())
+        if solver == "FD_fixed":
+            F = L
+            Q = FD_factor * F @ np.linalg.inv(L)
 
-        # Compute matrices
-        D = C.T @ Q @ C
-        D_f = C.T @ Q @ C_f
+            K = Q
 
-        # Compute new positions
-        d_x, d_y, d_z = nodes_delta(
-            p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f
-        )
+            # Compute matrices
+            D = C.T @ K @ C
+            D_f = C.T @ K @ C_f
+
+            # Compute new positions
+            d_x, d_y, d_z = nodes_delta(
+                p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f
+            )
+
+        elif solver == "FD_iter":
+            F = FD_factor * np.eye(len(e))
+            Q = F @ np.linalg.inv(L)
+
+            K = Q
+
+            # Compute matrices
+            D = C.T @ K @ C
+            D_f = C.T @ K @ C_f
+
+            # Compute new positions
+            d_x, d_y, d_z = nodes_delta(
+                p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f
+            )
 
         # Update nodes
         n_new = nodes_update(n, d_x, d_y, d_z, n_f)
@@ -226,7 +240,7 @@ def main(debug=False):
 
     plt.show()
 
-    f = np.dot(L_new, q)
+    f = np.diag(L_new) * np.diag(Q)
 
     logging.debug("\n######################")
     logging.debug("# COMPLETED")
@@ -235,7 +249,7 @@ def main(debug=False):
     logging.debug("\nFinal Nodes:\n %s", n_new)
     logging.debug("\nFinal Element Lengths:\n %s", np.diag(L_new))
     logging.debug("\nFinal Element Forces:\n %s", f)
-    logging.debug("\nFinal Element Force Densities:\n %s", q)
+    logging.debug("\nFinal Element Force Densities:\n %s", Q)
     logging.debug("\nFinal Element Forces (f/f_avg):\n %s", f / np.average(f))
 
     # Plot final network
@@ -243,4 +257,4 @@ def main(debug=False):
 
 
 if __name__ == "__main__":
-    main(debug=True)
+    main(debug=True, solver="FD_iter")

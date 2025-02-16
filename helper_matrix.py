@@ -134,6 +134,34 @@ def create_length_matrix(nodes, elements):
     return l_vec, L_mat
 
 
+def create_force_matrix(nodes, elements):
+    # Adjust indices (convert from 1-based to 0-based)
+    elements = elements - 1
+
+    # Compute lengths
+    lengths = np.linalg.norm(
+        nodes[elements[:, 0]] - nodes[elements[:, 1]], axis=1
+    )
+
+    # Convert to column vector
+    l_vec = lengths.reshape(-1, 1)
+
+    # Create diagonal matrix
+    L_mat = np.diag(l_vec.flatten())
+
+    return l_vec, L_mat
+
+
+def create_force_density_matrix(f_vec, l_vec, constant=True, factor=1):
+    # Compute force density vector (ensure it's a column vector)
+    q_vec = ((factor * f_vec if constant else f_vec) / l_vec).reshape(-1, 1)
+
+    # Create diagonal matrix
+    Q_mat = np.diag(q_vec.flatten())
+
+    return q_vec, Q_mat
+
+
 def calculate_force(L, L_0, E, A, F_0):
     EA = E * A  # Compute EA separately
     forces = (EA / L_0) * (L - L_0) + F_0
