@@ -10,7 +10,9 @@ from helper_matrix import (
     create_connectivity_matrix,
     create_length_matrix,
     create_node_force_vectors,
-    create_force_density_matrix,
+    create_elastic_stiffness_matrix,
+    # create_force_density_matrix,
+    create_force_matrix,
     partition_connectivity_matrix,
     partition_nodes_coordinates,
 )
@@ -18,26 +20,19 @@ from helper_plot import plot_network3D, plot_network_animated
 from helper_log import setup_logging
 
 
-def generate_force_densities(L, s):
-    # if np.linalg.det(L) == 0:
-    #     raise ValueError("Matrix L is singular and cannot be inverted.")
-
-    return np.linalg.solve(L, s)
-
-
-def nodes_delta(p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f):
+def nodes_delta(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
     # Compute the right-hand side vector (p - D * x - D_f * x_f)
     rhs_x = p_x - D @ x - D_f @ x_f
     rhs_y = p_y - D @ y - D_f @ y_f
     rhs_z = p_z - D @ z - D_f @ z_f
 
     # Compute the inverse of D
-    D_inv = np.linalg.inv(D)
+    K_inv = np.linalg.inv(K)
 
     # Solve for the displacements (delta)
-    delta_x = D_inv @ rhs_x
-    delta_y = D_inv @ rhs_y
-    delta_z = D_inv @ rhs_z
+    delta_x = K_inv @ rhs_x
+    delta_y = K_inv @ rhs_y
+    delta_z = K_inv @ rhs_z
 
     return delta_x, delta_y, delta_z
 
@@ -55,10 +50,6 @@ def nodes_update(nodes, d_x, d_y, d_z, n_f):
     updated_nodes[free_node_mask, 2] += d_z.flatten()  # Update z-coordinates
 
     return updated_nodes
-
-
-def solve_FD():
-    pass
 
 
 def generate_s(elements, N, ratio_outer_to_inner=1):
@@ -146,7 +137,11 @@ def main(debug=False, solver="FD_fixed"):
     TOL = 1e-6
     MAX_ITER = 1000
 
-    FD_factor = 2
+    FD_factor = 1
+    L_0 = np.copy(L)
+    F_0 = np.diag(np.copy(e_l).flatten())
+    E = np.eye(len(e))
+    A = np.eye(len(e))
 
     # Initialize iteration
     for iteration in range(MAX_ITER):
@@ -169,7 +164,7 @@ def main(debug=False, solver="FD_fixed"):
 
             # Compute new positions
             d_x, d_y, d_z = nodes_delta(
-                p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f
+                p_x, p_y, p_z, D, D, D_f, x, y, z, x_f, y_f, z_f
             )
 
         elif solver == "FD_iter":
@@ -184,7 +179,31 @@ def main(debug=False, solver="FD_fixed"):
 
             # Compute new positions
             d_x, d_y, d_z = nodes_delta(
-                p_x, p_y, p_z, D, D_f, x, y, z, x_f, y_f, z_f
+                p_x, p_y, p_z, D, D, D_f, x, y, z, x_f, y_f, z_f
+            )
+
+        elif solver == "DR":
+            F = create_force_matrix(L, L_0, E, A, F_0)
+            logging.debug("\nFORCE:\n %s", np.diagonal(L))
+            Q = F @ np.linalg.inv(L)
+
+            K_g = Q
+            K_e = create_elastic_stiffness_matrix(E, A, L_0, e, len(n))
+            K = K_g + K_e
+
+            logging.debug("\nStiffnes (Geometric):\n %s", K_g)
+            logging.debug("\nStiffnes (Elastic):\n %s", K_e)
+
+            # Compute matrices
+            K_mod = C.T @ K @ C
+
+            logging.debug("\nStiffnes (MOD):\n %s", K_mod)
+            D = C.T @ Q @ C
+            D_f = C.T @ Q @ C_f
+
+            # Compute new positions
+            d_x, d_y, d_z = nodes_delta(
+                p_x, p_y, p_z, K_mod, D, D_f, x, y, z, x_f, y_f, z_f
             )
 
         # Update nodes
@@ -226,9 +245,9 @@ def main(debug=False, solver="FD_fixed"):
     else:
         print("Max iterations reached without convergence.")
 
-    # Animation
+    # Animation update function
     def update(frame):
-        plot_network_animated(ax, node_positions[frame], e, n_f)
+        plot_network_animated(ax, node_positions[frame], e, n_f, frame + 1)
 
     # Create the animation
     fig = plt.figure()
@@ -257,4 +276,5 @@ def main(debug=False, solver="FD_fixed"):
 
 
 if __name__ == "__main__":
-    main(debug=True, solver="FD_iter")
+    main(debug=True, solver="DR")
+    # main(debug=True, solver="FD_fixed")

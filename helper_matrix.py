@@ -134,36 +134,80 @@ def create_length_matrix(nodes, elements):
     return l_vec, L_mat
 
 
-def create_force_matrix(nodes, elements):
-    # Adjust indices (convert from 1-based to 0-based)
-    elements = elements - 1
+def create_elastic_stiffness_matrix(E, A, L_0, elements, num_nodes):
+    """
+    Calculate the global stiffness matrix (diagonal) K_g.
 
-    # Compute lengths
-    lengths = np.linalg.norm(
-        nodes[elements[:, 0]] - nodes[elements[:, 1]], axis=1
-    )
+    Parameters:
+    E        : np.ndarray (diagonal matrix) - Young's modulus matrix
+    A        : np.ndarray (diagonal matrix) - Cross-sectional area matrix
+    L_0      : np.ndarray (n,) - Initial length of each element
+    elements : np.ndarray (n x 2) - Element connectivity matrix
+    nodes    : np.ndarray (num_nodes x 2) - Node coordinate matrix
+    num_nodes: int - Total number of nodes in the system
 
-    # Convert to column vector
-    l_vec = lengths.reshape(-1, 1)
+    Returns:
+    K_g : np.ndarray (diagonal matrix) - Global stiffness matrix
+    """
+    # Extract diagonal values from matrices E, A
+    E_diag = np.diag(E)
+    A_diag = np.diag(A)
+    L_0_diag = np.diag(L_0)
 
-    # Create diagonal matrix
-    L_mat = np.diag(l_vec.flatten())
+    # Compute element stiffness values (E*A / L_0 for each element)
+    k_e = (E_diag * A_diag) / L_0_diag
 
-    return l_vec, L_mat
+    # # Initialize nodal stiffness vector
+    # K_g_vec = np.zeros(num_nodes)
+
+    # # Assemble global stiffness by summing contributions at each node
+    # for i, (node1, node2) in enumerate(elements):
+    #     # Convert 1-based indexing to 0-based indexing
+    #     node1 -= 1
+    #     node2 -= 1
+
+    #     K_g_vec[node1] += k_e[i]
+    #     K_g_vec[node2] += k_e[i]
+
+    # Convert to diagonal matrix
+    K_g = np.diag(k_e)
+
+    return K_g
 
 
-def create_force_density_matrix(f_vec, l_vec, constant=True, factor=1):
-    # Compute force density vector (ensure it's a column vector)
-    q_vec = ((factor * f_vec if constant else f_vec) / l_vec).reshape(-1, 1)
+def create_force_matrix(L, L_0, E, A, F_0):
+    """
+    Calculate the force matrix F from given diagonal matrices.
 
-    # Create diagonal matrix
-    Q_mat = np.diag(q_vec.flatten())
+    Parameters:
+    L    : np.ndarray (diagonal square matrix) - Current length matrix
+    L_0  : np.ndarray (diagonal square matrix) - Initial length matrix
+    E    : float - Young's modulus
+    A    : float - Cross-sectional area
+    F_0  : np.ndarray (diagonal square matrix) - Initial force matrix
 
-    return q_vec, Q_mat
+    Returns:
+    F : np.ndarray (diagonal square matrix) - Resulting force matrix
+    """
+    # Ensure inputs are diagonal matrices
+    if not (
+        np.allclose(L, np.diag(np.diag(L)))
+        and np.allclose(L_0, np.diag(np.diag(L_0)))
+        and np.allclose(F_0, np.diag(np.diag(F_0)))
+    ):
+        raise ValueError("All input matrices must be square and diagonal.")
 
+    # Extract diagonal elements as vectors
+    L_diag = np.diag(L)
+    E_diag = np.diag(E)
+    A_diag = np.diag(A)
+    L_0_diag = np.diag(L_0)
+    F_0_diag = np.diag(F_0)
 
-def calculate_force(L, L_0, E, A, F_0):
-    EA = E * A  # Compute EA separately
-    forces = (EA / L_0) * (L - L_0) + F_0
-    F_mat = np.diag(forces.flatten())  # Create diagonal matrix
-    return forces, F_mat
+    # Compute force vector
+    forces = (E_diag * A_diag / L_0_diag) * (L_diag - L_0_diag) + F_0_diag
+
+    # # Return as diagonal matrix
+    # F = np.diag(forces)
+
+    return np.diag(forces)

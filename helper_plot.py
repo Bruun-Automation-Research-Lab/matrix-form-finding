@@ -7,130 +7,126 @@ def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
 
-    # Plot elements
-    for n1, n2 in elements - 1:  # Convert 1-based to 0-based indexing
+    text_offset = 0.05  # Adjust this value if necessary
+
+    # Plot elements with numbers
+    for i, (n1, n2) in enumerate(
+        elements - 1
+    ):  # Convert 1-based to 0-based indexing
         x_vals = [nodes[n1, 0], nodes[n2, 0]]
         y_vals = [nodes[n1, 1], nodes[n2, 1]]
         z_vals = [nodes[n1, 2], nodes[n2, 2]]
-        ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.5)
+        ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.8)
 
-    # Plot nodes
+        # Compute midpoint for element numbering
+        mid_x = (nodes[n1, 0] + nodes[n2, 0]) / 2
+        mid_y = (nodes[n1, 1] + nodes[n2, 1]) / 2
+        mid_z = (nodes[n1, 2] + nodes[n2, 2]) / 2
+        ax.text(
+            mid_x + text_offset,
+            mid_y + text_offset,
+            mid_z + text_offset,
+            str(i + 1),
+            color="green",
+            fontsize=7,
+        )  # Offset element number slightly
+
+    # Plot nodes with numbers
     for i, (x, y, z) in enumerate(nodes):
         if nodes_fixed[i]:  # Fixed node
-            ax.scatter(
-                x,
-                y,
-                z,
-                color="blue",
-                s=50,
-                label=(
-                    "Fixed"
-                    if i == np.where(nodes_fixed[:, 0] == 1)[0][0]
-                    else ""
-                ),
-            )
+            ax.scatter(x, y, z, color="blue", s=20)
         elif np.any(nodes_loads[i] != 0):  # Loaded node
-            ax.scatter(
-                x,
-                y,
-                z,
-                color="red",
-                s=50,
-                label=(
-                    "Loaded"
-                    if i == np.where(np.any(nodes_loads != 0, axis=1))[0][0]
-                    else ""
-                ),
-            )
+            ax.scatter(x, y, z, color="red", s=30)
         else:  # Normal node
-            ax.scatter(
-                x, y, z, color="black", s=5, label="Normal" if i == 0 else ""
-            )
+            ax.scatter(x, y, z, color="black", s=10)
+
+        # Add offset node number
+        ax.text(
+            x + text_offset,
+            y + text_offset,
+            z + text_offset,
+            str(i + 1),
+            color="black",
+            fontsize=7,
+        )
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
-    plt.legend()
     plt.show()
 
 
-def plot_network_animated(ax, nodes, elements, fixed_nodes):
+def plot_network_animated(ax, nodes, elements, fixed_nodes, iteration):
     ax.cla()  # Clear the axes
+
+    text_offset = 0.05  # Offset for labels to avoid overlap
 
     # Extract x, y, z coordinates from the nodes array
     x_vals, y_vals, z_vals = nodes[:, 0], nodes[:, 1], nodes[:, 2]
 
     # Plot nodes
-    ax.scatter(x_vals, y_vals, z_vals, c="b", marker=".", label="Nodes")
+    ax.scatter(
+        x_vals, y_vals, z_vals, c="black", marker="o", s=10, label="Nodes"
+    )
 
-    # Highlight fixed nodes in red
+    # Highlight fixed nodes in blue
     fixed_mask = (
         fixed_nodes.flatten() == 1
     )  # Assuming fixed_nodes is a 1D array with 0/1 values
-    x_fixed, y_fixed, z_fixed = (
+    ax.scatter(
         x_vals[fixed_mask],
         y_vals[fixed_mask],
         z_vals[fixed_mask],
-    )
-    ax.scatter(
-        x_fixed, y_fixed, z_fixed, c="r", marker="x", label="Fixed Nodes"
+        c="blue",
+        marker="o",
+        s=30,
+        label="Fixed Nodes",
     )
 
-    # Plot the elements (edges between nodes)
-    for start, end in elements:
-        x_start, y_start, z_start = nodes[
-            abs(start) - 1
-        ]  # Adjust for 0-based indexing
-        x_end, y_end, z_end = nodes[
-            abs(end) - 1
-        ]  # Adjust for 0-based indexing
+    # Plot elements with numbering
+    for i, (start, end) in enumerate(
+        elements - 1
+    ):  # Convert 1-based to 0-based indexing
+        x_start, y_start, z_start = nodes[start]
+        x_end, y_end, z_end = nodes[end]
         ax.plot(
             [x_start, x_end],
             [y_start, y_end],
             [z_start, z_end],
-            c="g",
+            c="green",
             linestyle="-",
             linewidth=1,
         )
 
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
-    ax.legend()
+        # Compute midpoint for element numbering
+        mid_x = (x_start + x_end) / 2
+        mid_y = (y_start + y_end) / 2
+        mid_z = (z_start + z_end) / 2
+        ax.text(
+            mid_x + text_offset,
+            mid_y + text_offset,
+            mid_z + text_offset,
+            str(i + 1),
+            color="green",
+            fontsize=7,
+        )  # Element number
 
-
-# Function to plot the network at each step of the iteration
-def plot_network_animated_old(ax, nodes, elements, fixed_nodes):
-    ax.cla()  # Clear the axes
-    x_vals = [nodes[node][0] for node in nodes]
-    y_vals = [nodes[node][1] for node in nodes]
-    z_vals = [nodes[node][2] for node in nodes]
-
-    # Plot nodes
-    ax.scatter(x_vals, y_vals, z_vals, c="b", marker=".", label="Nodes")
-
-    # Highlight fixed nodes in red
-    x_fixed = [nodes[node][0] for node in fixed_nodes]
-    y_fixed = [nodes[node][1] for node in fixed_nodes]
-    z_fixed = [nodes[node][2] for node in fixed_nodes]
-    ax.scatter(
-        x_fixed, y_fixed, z_fixed, c="r", marker="x", label="Fixed Nodes"
-    )
-
-    # Plot the elements (edges between nodes)
-    for start, end in elements:
-        x_start, y_start, z_start = nodes[abs(start)]
-        x_end, y_end, z_end = nodes[abs(end)]
-        ax.plot(
-            [x_start, x_end],
-            [y_start, y_end],
-            [z_start, z_end],
-            c="g",
-            linestyle="-",
-            linewidth=1,
+    # Plot node numbers
+    for i, (x, y, z) in enumerate(nodes):
+        ax.text(
+            x + text_offset,
+            y + text_offset,
+            z + text_offset,
+            str(i + 1),
+            color="black",
+            fontsize=7,
         )
 
+    # Set labels and title
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
+    ax.set_title(
+        f"Iteration {iteration}"
+    )  # Show iteration number in the title
     ax.legend()
