@@ -134,7 +134,7 @@ def main(debug=False, solver="FD_fixed"):
     logging.debug("\np_z:\n %s", p_z)
 
     # Set convergence criteria
-    TOL = 1e-6
+    TOL = 1e-8
     MAX_ITER = 1000
 
     FD_factor = 1
@@ -254,7 +254,7 @@ def main(debug=False, solver="FD_fixed"):
     ax = fig.add_subplot(111, projection="3d")
 
     _ = animation.FuncAnimation(
-        fig, update, frames=len(node_positions), interval=500
+        fig, update, frames=len(node_positions), interval=100
     )
 
     plt.show()
