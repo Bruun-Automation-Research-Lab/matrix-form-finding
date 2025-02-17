@@ -4,14 +4,14 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 # from structures.struct_3 import generate_struct
-from structures.struct_2 import generate_struct
+from structures.struct_1 import generate_struct
 from helper_matrix import (
     generate_struct_arrays,
     create_connectivity_matrix,
     create_length_matrix,
     create_node_force_vectors,
     create_elastic_stiffness_matrix,
-    # create_force_density_matrix,
+    create_nodal_stiffness_matrix,
     create_force_matrix,
     partition_connectivity_matrix,
     partition_nodes_coordinates,
@@ -134,7 +134,7 @@ def main(debug=False, solver="FD_fixed"):
     logging.debug("\np_z:\n %s", p_z)
 
     # Set convergence criteria
-    TOL = 1e-8
+    TOL = 1e-4
     MAX_ITER = 1000
 
     FD_factor = 1
@@ -142,6 +142,10 @@ def main(debug=False, solver="FD_fixed"):
     F_0 = np.diag(np.copy(e_l).flatten())
     E = np.eye(len(e))
     A = np.eye(len(e))
+    h = 0.0001
+    v_x = 0
+    v_y = 0
+    v_z = 0
 
     # Initialize iteration
     for iteration in range(MAX_ITER):
@@ -184,20 +188,34 @@ def main(debug=False, solver="FD_fixed"):
 
         elif solver == "DR":
             F = create_force_matrix(L, L_0, E, A, F_0)
-            logging.debug("\nFORCE:\n %s", np.diagonal(L))
+            logging.debug("\nFORCE:\n %s", np.diagonal(F))
             Q = F @ np.linalg.inv(L)
 
             K_g = Q
-            K_e = create_elastic_stiffness_matrix(E, A, L_0, e, len(n))
+            K_e = create_elastic_stiffness_matrix(E, A, L_0)
             K = K_g + K_e
-
-            logging.debug("\nStiffnes (Geometric):\n %s", K_g)
-            logging.debug("\nStiffnes (Elastic):\n %s", K_e)
 
             # Compute matrices
             K_mod = C.T @ K @ C
+            logging.debug(
+                "\nElement Stiffnes (Geometric):\n %s", np.diagonal(K_g)
+            )
+            logging.debug(
+                "\nElement Stiffnes (Elastic):\n %s", np.diagonal(K_e)
+            )
+            logging.debug("\nStiffnes (free nodes):\n %s", K_mod)
 
-            logging.debug("\nStiffnes (MOD):\n %s", K_mod)
+            delta = np.eye(
+                K_mod.shape[0]
+            )  # Kronecker delta as an identity matrix
+            K_mod = K_mod * delta
+
+            # Check that the nodal way is same as the C*K*C way
+            # K = compute_nodal_stiffness_force(E, A, L_0, F, L, e, len(n))
+            # K_free = K[n_f.flatten() == 0]
+            # K_mod = np.diag(K_free)
+            # logging.debug("\nStiffnes (MOD2):\n %s", K_mod)
+
             D = C.T @ Q @ C
             D_f = C.T @ Q @ C_f
 
@@ -205,6 +223,19 @@ def main(debug=False, solver="FD_fixed"):
             d_x, d_y, d_z = nodes_delta(
                 p_x, p_y, p_z, K_mod, D, D_f, x, y, z, x_f, y_f, z_f
             )
+
+            # M = h^2/2 * K, V1 = V0 + h/M * f
+            v_x += h * (2 / h**2) * d_x
+            v_y += h * (2 / h**2) * d_y
+            v_z += h * (2 / h**2) * d_z
+
+            logging.debug("\nv_x:\n %s", v_x)
+            logging.debug("\nv_y:\n %s", v_y)
+            logging.debug("\nv_z:\n %s", v_z)
+
+            d_x = v_x * h
+            d_y = v_y * h
+            d_z = v_z * h
 
         # Update nodes
         n_new = nodes_update(n, d_x, d_y, d_z, n_f)
@@ -247,14 +278,14 @@ def main(debug=False, solver="FD_fixed"):
 
     # Animation update function
     def update(frame):
-        plot_network_animated(ax, node_positions[frame], e, n_f, frame + 1)
+        plot_network_animated(ax, node_positions[frame], e, n_f, frame)
 
     # Create the animation
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
 
     _ = animation.FuncAnimation(
-        fig, update, frames=len(node_positions), interval=100
+        fig, update, frames=len(node_positions), interval=10
     )
 
     plt.show()

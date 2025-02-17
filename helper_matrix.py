@@ -134,9 +134,9 @@ def create_length_matrix(nodes, elements):
     return l_vec, L_mat
 
 
-def create_elastic_stiffness_matrix(E, A, L_0, elements, num_nodes):
+def create_elastic_stiffness_matrix(E, A, L_0):
     """
-    Calculate the global stiffness matrix (diagonal) K_g.
+    Calculate the elastic stiffness matrix K_e for each element.
 
     Parameters:
     E        : np.ndarray (diagonal matrix) - Young's modulus matrix
@@ -157,22 +157,49 @@ def create_elastic_stiffness_matrix(E, A, L_0, elements, num_nodes):
     # Compute element stiffness values (E*A / L_0 for each element)
     k_e = (E_diag * A_diag) / L_0_diag
 
-    # # Initialize nodal stiffness vector
-    # K_g_vec = np.zeros(num_nodes)
-
-    # # Assemble global stiffness by summing contributions at each node
-    # for i, (node1, node2) in enumerate(elements):
-    #     # Convert 1-based indexing to 0-based indexing
-    #     node1 -= 1
-    #     node2 -= 1
-
-    #     K_g_vec[node1] += k_e[i]
-    #     K_g_vec[node2] += k_e[i]
-
     # Convert to diagonal matrix
-    K_g = np.diag(k_e)
+    K_e = np.diag(k_e)
 
-    return K_g
+    return K_e
+
+
+def create_nodal_stiffness_matrix(E, A, L_0, F, L, elements, num_nodes):
+    """
+    Create K = Ke + Kg = (EA/L_0) + (F/L) for each node.
+
+    Parameters (each element):
+    E        : np.ndarray (diagonal square matrix) - Young's modulus
+    A        : np.ndarray (diagonal square matrix) - X-sectional area
+    L_0      : np.ndarray (diagonal square matrix) - Initial length
+    F        : np.ndarray (diagonal square matrix) - Force
+    L        : np.ndarray (diagonal square matrix) - Current length
+    elements : np.ndarray (n x 2) - Element connectivity (1-based indexing)
+    num_nodes: int - Total number of nodes
+
+    Returns:
+    nodal_values : np.ndarray (num_nodes,)
+    """
+    # Extract diagonal values
+    E_diag = np.diag(E)
+    A_diag = np.diag(A)
+    L_0_diag = np.diag(L_0)
+    F_diag = np.diag(F)
+    L_diag = np.diag(L)
+
+    # Compute (EA/L₀) + (F/L) for each element
+    element_values = (E_diag * A_diag) / L_0_diag + F_diag / L_diag
+
+    # Initialize nodal contribution array
+    nodal_values = np.zeros(num_nodes)
+
+    # Assemble contributions at each node
+    for i, (node1, node2) in enumerate(
+        elements - 1
+    ):  # Convert 1-based to 0-based indexing
+        nodal_values[node1] += element_values[i]
+        nodal_values[node2] += element_values[i]
+
+    return nodal_values
 
 
 def create_force_matrix(L, L_0, E, A, F_0):
