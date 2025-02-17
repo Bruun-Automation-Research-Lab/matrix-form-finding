@@ -238,3 +238,28 @@ def create_force_matrix(L, L_0, E, A, F_0):
     # F = np.diag(forces)
 
     return np.diag(forces)
+
+
+def compute_kinetic_energy(K, v_x, v_y, v_z, h):
+    """
+    Compute the kinetic energy given a diagonal mass matrix K_mod
+    and velocity components v_x, v_y, v_z.
+
+    Parameters:
+    K_mod : (N, N) numpy.ndarray - Diagonal mass matrix (N x N)
+    v_x, v_y, v_z : (N,) numpy.ndarray - Velocity components
+
+    Returns:
+    KE : float - Total kinetic energy
+    """
+    # Extract the diagonal elements (masses)
+    masses = np.diag(K) * h**2 / 2
+
+    # Compute kinetic energy for each direction
+    KE_x = 0.5 * np.dot(v_x * masses, v_x)
+    KE_y = 0.5 * np.dot(v_y * masses, v_y)
+    KE_z = 0.5 * np.dot(v_z * masses, v_z)
+
+    # Total kinetic energy
+    KE = np.sum(KE_x + KE_y + KE_z)
+    return KE

@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 # from structures.struct_3 import generate_struct
-from structures.struct_1 import generate_struct
+from structures.struct_2 import generate_struct
 from helper_matrix import (
     generate_struct_arrays,
     create_connectivity_matrix,
     create_length_matrix,
     create_node_force_vectors,
     create_elastic_stiffness_matrix,
+    compute_kinetic_energy,
     create_nodal_stiffness_matrix,
     create_force_matrix,
     partition_connectivity_matrix,
@@ -88,6 +89,76 @@ def generate_s(elements, N, ratio_outer_to_inner=1):
     return s
 
 
+def quadratic_interpolate(y_values, t_star):
+    """
+    Interpolates the y-value at time t_star using quadratic interpolation.
+
+    Parameters:
+    y_values: List or array of three y-values.
+    t_star: The time at which the interpolation is done.
+
+    Returns:
+    Interpolated y-value at t_star.
+    """
+    # Time values are fixed to [0, 0.5, 1.0]
+    t_values = [0.0, 0.5, 1.0]
+
+    # Set up the matrix M for quadratic interpolation
+    M = np.array(
+        [
+            [t_values[0] ** 2, t_values[0], 1],
+            [t_values[1] ** 2, t_values[1], 1],
+            [t_values[2] ** 2, t_values[2], 1],
+        ]
+    )
+
+    # Vector of known y-values
+    y = np.array(y_values)
+
+    # Solve for the coefficients a, b, c of the quadratic equation
+    coefficients = np.linalg.solve(M, y)
+
+    # Extract coefficients
+    a, b, c = coefficients
+
+    # Calculate and return the interpolated value at t_star
+    return a * t_star**2 + b * t_star + c
+
+
+def debug_table(y_star, E_star, energy_values):
+    """
+    This function generates a debug table
+
+    Args:
+    - y_star (float): The value of t* (time).
+    - E_star (float): The energy at t* (E(t*)).
+    - energy_values (list of floats): List containing the other energy values.
+    """
+
+    # Ensure energy_values has exactly 3 points
+    if len(energy_values) != 3:
+        raise ValueError("energy_values should contain exactly 3 points.")
+
+    # Build the time array based on the value of y_star
+    if 0 <= y_star < 0.5:
+        r1 = [0.0, y_star, 0.5, 1.0]
+        r2 = [energy_values[0], E_star, energy_values[1], energy_values[2]]
+    elif 0.5 <= y_star <= 1.0:
+        r1 = [0.0, 0.5, y_star, 1.0]
+        r2 = [energy_values[0], energy_values[1], E_star, energy_values[2]]
+
+    # Prepare the ASCII table with reordered columns
+    table = f"""
+    +----+------------+-----------+-----------+------------+
+    | t  | {r1[0]:.3f}      | {r1[1]:.3f}     | {r1[2]:.3f}     | {r1[3]:.3f}
+    +----+------------+-----------+-----------+------------+
+    | E  | {r2[0]:.3e} | {r2[1]:.3e} | {r2[2]:.3e} | {r2[3]:.3e}
+    +----+------------+-----------+-----------+------------+
+    """
+
+    logging.debug("\n%s", table)
+
+
 # Main computation
 def main(debug=False, solver="FD_fixed"):
     setup_logging(debug)
@@ -142,10 +213,15 @@ def main(debug=False, solver="FD_fixed"):
     F_0 = np.diag(np.copy(e_l).flatten())
     E = np.eye(len(e))
     A = np.eye(len(e))
-    h = 0.0001
+    h = 2
     v_x = 0
     v_y = 0
     v_z = 0
+
+    first = True
+    KE_prev2 = 0.0  # KE at t-1
+    KE_prev = 0.0  # KE at t
+    KE_history = []
 
     # Initialize iteration
     for iteration in range(MAX_ITER):
@@ -210,7 +286,7 @@ def main(debug=False, solver="FD_fixed"):
             )  # Kronecker delta as an identity matrix
             K_mod = K_mod * delta
 
-            # Check that the nodal way is same as the C*K*C way
+            # Check that the nodal, is same as the element (C*K*C) way
             # K = compute_nodal_stiffness_force(E, A, L_0, F, L, e, len(n))
             # K_free = K[n_f.flatten() == 0]
             # K_mod = np.diag(K_free)
@@ -220,14 +296,21 @@ def main(debug=False, solver="FD_fixed"):
             D_f = C.T @ Q @ C_f
 
             # Compute new positions
-            d_x, d_y, d_z = nodes_delta(
+            x, y, z = nodes_delta(
                 p_x, p_y, p_z, K_mod, D, D_f, x, y, z, x_f, y_f, z_f
             )
 
-            # M = h^2/2 * K, V1 = V0 + h/M * f
-            v_x += h * (2 / h**2) * d_x
-            v_y += h * (2 / h**2) * d_y
-            v_z += h * (2 / h**2) * d_z
+            # M = h^2/2 * K, V1 = V0 + h/M * f (normal)
+            # M = h^2/2 * K, V1 = V0 + h/2*M * f (first iteration)
+
+            if first:
+                v_x = h * (1 / h**2) * x
+                v_y = h * (1 / h**2) * y
+                v_z = h * (1 / h**2) * z
+            else:
+                v_x += h * (2 / h**2) * x
+                v_y += h * (2 / h**2) * y
+                v_z += h * (2 / h**2) * z
 
             logging.debug("\nv_x:\n %s", v_x)
             logging.debug("\nv_y:\n %s", v_y)
@@ -236,6 +319,37 @@ def main(debug=False, solver="FD_fixed"):
             d_x = v_x * h
             d_y = v_y * h
             d_z = v_z * h
+
+            KE = compute_kinetic_energy(K_mod, v_x, v_y, v_z, h)
+            logging.debug("\nKINETIC ENERGY: %s", KE)
+
+            # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
+            if KE_prev2 < KE_prev > KE:
+                logging.debug(
+                    "\nKINETIC ENERGY PEAK REACHED. APPLYING DAMPING."
+                )
+
+                q = 0.5
+                q = (KE_prev - KE) / ((KE_prev - KE) - (KE_prev2 - KE_prev))
+
+                d_x -= h * (1 + q) * v_x + (q / 2) * x
+                d_y -= h * (1 + q) * v_x + (q / 2) * x
+                d_z -= h * (1 + q) * v_x + (q / 2) * x
+
+                # Reset velocities to 0 (kinetic damping)
+                v_x[:], v_y[:], v_z[:] = 0, 0, 0
+                first = True
+
+                KE_q = quadratic_interpolate([KE_prev2, KE_prev, KE], q)
+
+                debug_table(q, KE_q, [KE_prev2, KE_prev, KE])
+                KE = KE_q
+
+            KE_history.append(KE)
+
+            # Shift kinetic energy values for next iteration
+            KE_prev2 = KE_prev
+            KE_prev = KE
 
         # Update nodes
         n_new = nodes_update(n, d_x, d_y, d_z, n_f)
@@ -257,7 +371,7 @@ def main(debug=False, solver="FD_fixed"):
         logging.debug("\nd_y:\n %s", d_y)
         logging.debug("\nd_z:\n %s", d_z)
 
-        logging.debug("\nnodes new:\n %s", n_new)
+        logging.debug("\nnodes new:\n %s\n", n_new)
 
         logging.debug(f"Total Len = {L_total_new:.3f}, ")
         logging.debug(f"Max error = {max_error:.3f}")
@@ -270,11 +384,21 @@ def main(debug=False, solver="FD_fixed"):
         n = n_new
         L = L_new
         L_total = L_total_new
+        first = False
 
         # plot_network3D(n, e, n_l, n_f)
 
     else:
         print("Max iterations reached without convergence.")
+
+    plt.figure(figsize=(8, 5))
+    plt.plot(KE_history, label="Kinetic Energy", color="b")
+    plt.xlabel("Iteration")
+    plt.ylabel("Kinetic Energy")
+    plt.title("Kinetic Energy vs. Iteration")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
     # Animation update function
     def update(frame):
