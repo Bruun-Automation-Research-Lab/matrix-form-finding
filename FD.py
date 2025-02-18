@@ -1,7 +1,6 @@
 import numpy as np
 import logging
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+
 
 from structures.struct_2 import generate_struct
 from helper_matrix import (
@@ -16,12 +15,22 @@ from helper_matrix import (
     partition_connectivity_matrix,
     partition_nodes_coordinates,
 )
-from helper_plot import plot_network3D, plot_network_animated
+from helper_plot import (
+    plot_network3D,
+    plot_animation,
+    plot_kinetic_energy,
+)
 from helper_log import (
     setup_logging,
     debug_table,
     debug_initial_struct,
     debug_iteration,
+    debug_force_and_density,
+    debug_stiffness,
+    debug_stiffness_FD,
+    debug_delta_nodes,
+    debug_error,
+    debug_final,
 )
 
 
@@ -214,56 +223,60 @@ def main(debug=False, solver="FD_fixed"):
         if solver == "FD_fixed":
             F = L
             Q = FD_factor * F @ np.linalg.inv(L)
+            debug_force_and_density(F, Q)
 
-            K = Q
+            # Stiffness matrix
+            K = C.T @ Q @ C
 
-            # Compute matrices
-            D = C.T @ K @ C
-            D_f = C.T @ K @ C_f
+            # Force Matrix
+            D = C.T @ Q @ C
+            D_f = C.T @ Q @ C_f
+
+            debug_stiffness_FD(K, D, D_f)
 
             # Compute new positions
             d_x, d_y, d_z = nodes_delta(
-                p_x, p_y, p_z, D, D, D_f, x, y, z, x_f, y_f, z_f
+                p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f
             )
 
         elif solver == "FD_iter":
             F = FD_factor * np.eye(len(e))
             Q = F @ np.linalg.inv(L)
+            debug_force_and_density(F, Q)
 
-            K = Q
+            # Stiffness matrix (free nodes)
+            K = C.T @ Q @ C
 
-            # Compute matrices
-            D = C.T @ K @ C
-            D_f = C.T @ K @ C_f
+            # Force Matrix (free and fixed nodes)
+            D = C.T @ Q @ C
+            D_f = C.T @ Q @ C_f
 
-            # Compute new positions
+            debug_stiffness_FD(K, D, D_f)
+
+            # Compute change in x,y,z
             d_x, d_y, d_z = nodes_delta(
-                p_x, p_y, p_z, D, D, D_f, x, y, z, x_f, y_f, z_f
+                p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f
             )
 
         elif solver == "DR":
             F = create_force_matrix(L, L_0, E, A, F_0)
-            logging.debug("\nFORCE:\n %s", np.diagonal(F))
             Q = F @ np.linalg.inv(L)
+            debug_force_and_density(F, Q)
 
+            # Element-level stiffness matrices
             K_g = Q
             K_e = create_elastic_stiffness_matrix(E, A, L_0)
-            K = K_g + K_e
+            K_total = K_g + K_e
 
-            # Compute matrices
-            K_mod = C.T @ K @ C
-            logging.debug(
-                "\nElement Stiffnes (Geometric):\n %s", np.diagonal(K_g)
-            )
-            logging.debug(
-                "\nElement Stiffnes (Elastic):\n %s", np.diagonal(K_e)
-            )
-            logging.debug("\nStiffnes (free nodes):\n %s", K_mod)
+            # Free Nodes stiffness matrices
+            K = C.T @ K_total @ C
 
-            delta = np.eye(
-                K_mod.shape[0]
-            )  # Kronecker delta as an identity matrix
-            K_mod = K_mod * delta
+            # Kronecker delta as an identity matrix
+            delta = np.eye(K.shape[0])
+
+            K_mod = K * delta
+
+            debug_stiffness(K_g, K_e, K, K_mod)
 
             # Check that the nodal, is same as the element (C*K*C) way
             # K = compute_nodal_stiffness_force(E, A, L_0, F, L, e, len(n))
@@ -342,32 +355,18 @@ def main(debug=False, solver="FD_fixed"):
 
         # Update nodes
         n_new = nodes_update(n, d_x, d_y, d_z, n_f)
+        node_positions.append(n_new)
 
         # Check for convergence
         l_vec, L_new = create_length_matrix(n_new, e)
         L_total_new = np.sum(l_vec**2)
-        max_error = L_total_new - L_total
-
-        node_positions.append(n_new)
+        error = np.abs(L_total_new - L_total)
 
         print(
             f"Iteration {iteration + 1}: "
             f"Total Len = {L_total_new:.3f}, "
-            f"Max error = {max_error:.3f}"
+            f"Max error = {error:.3f}"
         )
-
-        logging.debug("\nd_x:\n %s", d_x)
-        logging.debug("\nd_y:\n %s", d_y)
-        logging.debug("\nd_z:\n %s", d_z)
-
-        logging.debug("\nnodes new:\n %s\n", n_new)
-
-        logging.debug(f"Total Len = {L_total_new:.3f}, ")
-        logging.debug(f"Max error = {max_error:.3f}")
-
-        if np.abs(max_error) < TOL:
-            print("Convergence achieved!")
-            break
 
         # Update for next iteration
         n = n_new
@@ -375,50 +374,29 @@ def main(debug=False, solver="FD_fixed"):
         L_total = L_total_new
         first = True
 
+        debug_delta_nodes(d_x, d_y, d_z, n_new)
+        debug_error(L_total, error)
+
+        if error < TOL:
+            print("Convergence achieved!")
+            break
+
         # plot_network3D(n, e, n_l, n_f)
 
     else:
         print("Max iterations reached without convergence.")
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(KE_history, label="Kinetic Energy", color="b")
-    plt.xlabel("Iteration")
-    plt.ylabel("Kinetic Energy")
-    plt.title("Kinetic Energy vs. Iteration")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # Final Structure
+    debug_final(n_new, L_new, F, Q)
 
-    # Animation update function
-    def update(frame):
-        plot_network_animated(ax, node_positions[frame], e, n_f, frame)
+    plot_kinetic_energy(KE_history, solver)
 
-    # Create the animation
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
+    plot_animation(node_positions, e, n_f)
 
-    _ = animation.FuncAnimation(
-        fig, update, frames=len(node_positions), interval=30
-    )
-
-    plt.show()
-
-    f = np.diag(L_new) * np.diag(Q)
-
-    logging.debug("\n######################")
-    logging.debug("# COMPLETED")
-    logging.debug("######################")
-
-    logging.debug("\nFinal Nodes:\n %s", n_new)
-    logging.debug("\nFinal Element Lengths:\n %s", np.diag(L_new))
-    logging.debug("\nFinal Element Forces:\n %s", f)
-    logging.debug("\nFinal Element Force Densities:\n %s", Q)
-    logging.debug("\nFinal Element Forces (f/f_avg):\n %s", f / np.average(f))
-
-    # Plot final network
     plot_network3D(n, e, n_l, n_f)
 
 
 if __name__ == "__main__":
-    main(debug=True, solver="DR")
+    # main(debug=True, solver="FD_fixed")
     # main(debug=True, solver="FD_iter")
+    main(debug=True, solver="DR")

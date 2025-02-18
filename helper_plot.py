@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 
 
@@ -130,3 +131,32 @@ def plot_network_animated(ax, nodes, elements, fixed_nodes, iteration):
         f"Iteration {iteration}"
     )  # Show iteration number in the title
     ax.legend()
+
+
+def plot_animation(node_positions, e, n_f):
+    # Animation update function
+    def update(frame):
+        plot_network_animated(ax, node_positions[frame], e, n_f, frame)
+
+    # Create the animation
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection="3d")
+
+    _ = animation.FuncAnimation(
+        fig, update, frames=len(node_positions), interval=30
+    )
+
+    plt.show()
+
+
+def plot_kinetic_energy(KE, solver):
+
+    if solver == "DR":
+        plt.figure(figsize=(8, 5))
+        plt.plot(KE, label="Kinetic Energy", color="b")
+        plt.xlabel("Iteration")
+        plt.ylabel("Kinetic Energy")
+        plt.title("Kinetic Energy vs. Iteration")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
