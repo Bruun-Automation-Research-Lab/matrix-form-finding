@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 
-from structures.struct_1 import generate_struct
+from structures.struct_4 import generate_struct
 from helper_plot import plot_network3D
 
 
@@ -248,7 +248,9 @@ class DynamicRelaxation:
 #         5, spacing=2.5
 #     )
 
-nodes, elements, external_loads, fixed_nodes = generate_struct()
+nodes, elements, elements_preload, external_loads, fixed_nodes = (
+    generate_struct()
+)
 
 external_loads[5] = [0.0, 0.0, -1.5]  # Apply downward force to node 5
 

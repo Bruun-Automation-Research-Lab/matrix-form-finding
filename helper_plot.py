@@ -8,7 +8,7 @@ def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
 
-    text_offset = 0.05  # Adjust this value if necessary
+    text_offset = 0.07  # Adjust this value if necessary
 
     # Plot elements with numbers
     for i, (n1, n2) in enumerate(
@@ -36,24 +36,51 @@ def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
     for i, (x, y, z) in enumerate(nodes):
         if nodes_fixed[i]:  # Fixed node
             ax.scatter(x, y, z, color="blue", s=20)
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="blue",  # Blue text for fixed nodes
+                fontsize=7,
+                weight="bold",  # Bold text for fixed nodes
+            )
         elif np.any(nodes_loads[i] != 0):  # Loaded node
             ax.scatter(x, y, z, color="red", s=30)
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="red",  # Red text for loaded nodes
+                fontsize=7,
+                weight="bold",  # Bold text for loaded nodes
+            )
         else:  # Normal node
             ax.scatter(x, y, z, color="black", s=10)
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="black",  # Normal black text
+                fontsize=7,
+            )
 
-        # Add offset node number
-        ax.text(
-            x + text_offset,
-            y + text_offset,
-            z + text_offset,
-            str(i + 1),
-            color="black",
-            fontsize=7,
-        )
+    # Calculate axis limits based on the node locations
+    x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
+    y_min, y_max = np.min(nodes[:, 1]), np.max(nodes[:, 1])
+    z_min, z_max = np.min(nodes[:, 2]), np.max(nodes[:, 2])
+
+    # Set axis limits with a minimum of -1 and 1
+    ax.set_xlim([min(x_min - 1, -1), max(x_max + 1, 1)])
+    ax.set_ylim([min(y_min - 1, -1), max(y_max + 1, 1)])
+    ax.set_zlim([min(z_min - 1, -1), max(z_max + 1, 1)])
 
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
+
     plt.show()
 
 
@@ -114,14 +141,35 @@ def plot_network_animated(ax, nodes, elements, fixed_nodes, iteration):
 
     # Plot node numbers
     for i, (x, y, z) in enumerate(nodes):
-        ax.text(
-            x + text_offset,
-            y + text_offset,
-            z + text_offset,
-            str(i + 1),
-            color="black",
-            fontsize=7,
-        )
+        if fixed_nodes[i] == 1:  # Fixed node
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="blue",  # Blue text for fixed nodes
+                fontsize=7,
+                weight="bold",  # Bold text for fixed nodes
+            )
+        else:  # Normal node
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="black",  # Normal black text
+                fontsize=7,
+            )
+
+    # Calculate axis limits based on the node locations
+    x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
+    y_min, y_max = np.min(nodes[:, 1]), np.max(nodes[:, 1])
+    z_min, z_max = np.min(nodes[:, 2]), np.max(nodes[:, 2])
+
+    # Set axis limits with a minimum of -1 and 1
+    ax.set_xlim([min(x_min, -1), max(x_max, 1)])
+    ax.set_ylim([min(y_min, -1), max(y_max, 1)])
+    ax.set_zlim([min(z_min, -1), max(z_max, 1)])
 
     # Set labels and title
     ax.set_xlabel("X")

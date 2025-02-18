@@ -1,8 +1,8 @@
 import numpy as np
 import logging
 
+from structures.struct_4 import generate_struct
 
-from structures.struct_2 import generate_struct
 from helper_matrix import (
     generate_struct_arrays,
     create_connectivity_matrix,
@@ -202,7 +202,7 @@ def main(debug=False, solver="FD_fixed"):
     v_x = 0
     v_y = 0
     v_z = 0
-    gamma = 0.90
+    gamma = 0.7
 
     first = True
     KE_prev2 = 0.0  # KE at t-2
