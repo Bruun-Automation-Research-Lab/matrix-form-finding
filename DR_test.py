@@ -10,7 +10,7 @@ class DynamicRelaxation:
         edges,
         fixed,
         mass=1.0,
-        damping=0.90,
+        damping=0.30,
         dt=0.1,
         tol=1e-3,
         external_forces=None,
@@ -77,7 +77,7 @@ class DynamicRelaxation:
             # Print iteration info every 100 steps
             if iteration % 100 == 0:
                 print(
-                    f"Iteration {iteration:6d} | Max Displacement: {max_displacement:.3e}"
+                    f"Iter {iteration:6d} | Max Disp: {max_displacement:.3e}"
                 )
 
             if max_displacement < self.tol:
@@ -179,18 +179,18 @@ class DynamicRelaxation:
             else:
                 max_displacement = 0.0
 
-            # Display iteration number and max displacement (in scientific notation)
+            # Display iteration number and max displacement (in sci notation)
             ax.text(
                 0.1,
                 3.5,
-                f"Iteration: {frame * 20}\nMax Displacement (m): {max_displacement:.3e}",
+                f"Iter: {frame * 20}\nMax Disp. (m): {max_displacement:.3e}",
                 fontsize=12,
                 color="blue",
             )
             ax.set_xlim(-1, 10)
             ax.set_ylim(-1, 4)
 
-        ani = animation.FuncAnimation(
+        _ = animation.FuncAnimation(
             fig, update, frames=len(self.frames), interval=100
         )
         plt.show()

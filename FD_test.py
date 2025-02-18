@@ -3,7 +3,6 @@ import logging
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-# from structures.struct_3 import generate_struct
 from structures.struct_2 import generate_struct
 from helper_matrix import (
     generate_struct_arrays,
@@ -89,7 +88,26 @@ def generate_s(elements, N, ratio_outer_to_inner=1):
     return s
 
 
-def quadratic_interpolate(y_values, t_star):
+def quadratic_interp(y_points):
+
+    x_points = np.array([0.0, 0.5, 1.0])
+
+    # Fit a quadratic polynomial
+    coeffs = np.polyfit(x_points, y_points, 2)
+
+    # Extract the coefficients a, b, and c
+    a, b, c = coeffs
+
+    # Find the x-value where the maximum occurs (vertex of the parabola)
+    x_max = -b / (2 * a)
+
+    # Find the maximum y-value
+    y_max = np.polyval(coeffs, x_max)
+
+    return x_max, y_max
+
+
+def quadratic_interpolate2(y_values, t_star):
     """
     Interpolates the y-value at time t_star using quadratic interpolation.
 
@@ -143,9 +161,11 @@ def debug_table(y_star, E_star, energy_values):
     if 0 <= y_star < 0.5:
         r1 = [0.0, y_star, 0.5, 1.0]
         r2 = [energy_values[0], E_star, energy_values[1], energy_values[2]]
+        before = True
     elif 0.5 <= y_star <= 1.0:
         r1 = [0.0, 0.5, y_star, 1.0]
         r2 = [energy_values[0], energy_values[1], E_star, energy_values[2]]
+        before = False
 
     # Prepare the ASCII table with reordered columns
     table = f"""
@@ -157,6 +177,7 @@ def debug_table(y_star, E_star, energy_values):
     """
 
     logging.debug("\n%s", table)
+    return before
 
 
 # Main computation
@@ -213,14 +234,15 @@ def main(debug=False, solver="FD_fixed"):
     F_0 = np.diag(np.copy(e_l).flatten())
     E = np.eye(len(e))
     A = np.eye(len(e))
-    h = 2
+    h = 0.1
     v_x = 0
     v_y = 0
     v_z = 0
+    gamma = 0.90
 
     first = True
-    KE_prev2 = 0.0  # KE at t-1
-    KE_prev = 0.0  # KE at t
+    KE_prev2 = 0.0  # KE at t-2
+    KE_prev = 0.0  # KE at t-1
     KE_history = []
 
     # Initialize iteration
@@ -301,7 +323,7 @@ def main(debug=False, solver="FD_fixed"):
             )
 
             # M = h^2/2 * K, V1 = V0 + h/M * f (normal)
-            # M = h^2/2 * K, V1 = V0 + h/2*M * f (first iteration)
+            # M = h^2/2 * K, V1 = h/2*M * f (first iteration)
 
             if first:
                 v_x = h * (1 / h**2) * x
@@ -316,40 +338,50 @@ def main(debug=False, solver="FD_fixed"):
             logging.debug("\nv_y:\n %s", v_y)
             logging.debug("\nv_z:\n %s", v_z)
 
-            d_x = v_x * h
-            d_y = v_y * h
-            d_z = v_z * h
+            # Uhhhhh where is V,t-1? need to add to v,t right?
+            d_x = gamma * v_x * h
+            d_y = gamma * v_y * h
+            d_z = gamma * v_z * h
 
             KE = compute_kinetic_energy(K_mod, v_x, v_y, v_z, h)
             logging.debug("\nKINETIC ENERGY: %s", KE)
+            before = False
 
-            # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
-            if KE_prev2 < KE_prev > KE:
-                logging.debug(
-                    "\nKINETIC ENERGY PEAK REACHED. APPLYING DAMPING."
-                )
+            # # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
+            # if KE_prev2 < KE_prev > KE:
+            #     logging.debug(
+            #         "\nKINETIC ENERGY PEAK REACHED. APPLYING DAMPING."
+            #     )
 
-                q = 0.5
-                q = (KE_prev - KE) / ((KE_prev - KE) - (KE_prev2 - KE_prev))
+            #     q = 0.5
+            #     q = (KE_prev - KE) / ((KE_prev - KE) - (KE_prev2 - KE_prev))
+            #     logging.debug("\nq: %s", q)
+            #     # q,KE_q = quadratic_interpol([KE_prev2, KE_prev, KE])
+            #     KE_q = quadratic_interpolate2([KE_prev2, KE_prev, KE],q)
+            #     logging.debug("\nq: %s", q)
 
-                d_x -= h * (1 + q) * v_x + (q / 2) * x
-                d_y -= h * (1 + q) * v_x + (q / 2) * x
-                d_z -= h * (1 + q) * v_x + (q / 2) * x
+            #     d_x -= h * (1 + q) * v_x + (q) * x
+            #     d_y -= h * (1 + q) * v_x + (q) * x
+            #     d_z -= h * (1 + q) * v_x + (q) * x
 
-                # Reset velocities to 0 (kinetic damping)
-                v_x[:], v_y[:], v_z[:] = 0, 0, 0
-                first = True
+            #     # Reset velocities to 0 (kinetic damping)
+            #     v_x[:], v_y[:], v_z[:] = 0, 0, 0
+            #     first = True
 
-                KE_q = quadratic_interpolate([KE_prev2, KE_prev, KE], q)
+            #     # KE_q = quadratic_interpolate([KE_prev2, KE_prev, KE])
 
-                debug_table(q, KE_q, [KE_prev2, KE_prev, KE])
-                KE = KE_q
+            #     before = debug_table(q, KE_q, [KE_prev2, KE_prev, KE])
+            #     # KE = KE_q
 
             KE_history.append(KE)
 
             # Shift kinetic energy values for next iteration
-            KE_prev2 = KE_prev
-            KE_prev = KE
+            if before:
+                KE_prev2 = KE_prev2
+                KE_prev = KE
+            else:
+                KE_prev2 = KE_prev
+                KE_prev = KE
 
         # Update nodes
         n_new = nodes_update(n, d_x, d_y, d_z, n_f)
@@ -384,7 +416,7 @@ def main(debug=False, solver="FD_fixed"):
         n = n_new
         L = L_new
         L_total = L_total_new
-        first = False
+        first = True
 
         # plot_network3D(n, e, n_l, n_f)
 
@@ -409,7 +441,7 @@ def main(debug=False, solver="FD_fixed"):
     ax = fig.add_subplot(111, projection="3d")
 
     _ = animation.FuncAnimation(
-        fig, update, frames=len(node_positions), interval=10
+        fig, update, frames=len(node_positions), interval=30
     )
 
     plt.show()
@@ -432,4 +464,4 @@ def main(debug=False, solver="FD_fixed"):
 
 if __name__ == "__main__":
     main(debug=True, solver="DR")
-    # main(debug=True, solver="FD_fixed")
+    # main(debug=True, solver="FD_iter")

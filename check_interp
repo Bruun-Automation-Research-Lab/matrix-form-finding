@@ -1,0 +1,50 @@
+import numpy as np
+from scipy.interpolate import interp1d
+
+A = -1.096
+B = 6.348
+C = -7.601
+# C = -1.096
+
+
+# Calculate the normalized position (t*)
+normalized_position = (B - C) / ((B - C) - (A - B))
+
+print(normalized_position)
+
+# Now you can use this normalized position in your interpolation calculation
+# For example, you can now calculate y(t*) using a quadratic interpolation formula
+# f(t*) = a * t*^2 + b * t* + c (just an example)
+
+# Let's calculate the interpolation for the example
+def quadratic_interpolate(t_star, A, B, C):
+    a = (A - 2*B + C) / 2
+    b = (B - A) / 2
+    c = A
+    return a * t_star**2 + b * t_star + c
+
+# Estimate y(t*) at the normalized position
+y_t_star = quadratic_interpolate(normalized_position, A, B, C)
+print(f"Estimated y(t*) at normalized position {normalized_position}: {y_t_star}")
+
+# Sample data points
+x_data = [0, 0.5, 1]
+y_data = [A, B, C]
+
+# Create the quadratic interpolator
+
+f = interp1d(x_data, y_data, kind='quadratic')
+
+# Generate a very fine grid of x values over the range [0, 1]
+x_fine = np.linspace(0, 1, 1000)
+
+# Calculate the corresponding y values for these x values
+y_fine = f(x_fine)
+
+# Now, find the x value that gives the maximum y
+max_y_index = np.argmax(y_fine)
+max_y = y_fine[max_y_index]
+max_x = x_fine[max_y_index]
+
+# Print the result
+print(f"The maximum y value occurs at x = {max_x} with y = {max_y}")
