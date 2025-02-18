@@ -4,7 +4,15 @@ import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 
 from structures.struct_4 import generate_struct
-from helper_plot import plot_network3D
+
+from helper_matrix import (
+    generate_struct_arrays,
+)
+
+from helper_plot import (
+    plot_network3D,
+    plot_animation,
+)
 
 
 class DynamicRelaxation:
@@ -20,9 +28,7 @@ class DynamicRelaxation:
         external_forces=None,
     ):
         # Convert the nodes dictionary into a NumPy array
-        self.nodes = np.array(
-            list(nodes.values()), dtype=float
-        )  # Node coordinates
+        self.nodes = nodes  # Node coordinates
         self.elements = np.array(elements, dtype=int)  # connectivity
         self.fixed = fixed  # Fixed nodes (list of node indices)
         self.mass = mass  # Mass per node
@@ -31,13 +37,7 @@ class DynamicRelaxation:
         self.tol = tol  # Convergence tolerance
         self.velocities = np.zeros_like(self.nodes)  # Initial velocities
         # Convert external forces dictionary into a NumPy array
-        self.external_forces = (
-            np.array(
-                [external_forces.get(i, (0.0, 0.0, 0.0)) for i in nodes.keys()]
-            )
-            if external_forces is not None
-            else np.zeros_like(self.nodes)
-        )
+        self.external_forces = external_forces
         self.frames = []  # Store frames for animation
 
     def length(self, edge):
@@ -82,8 +82,7 @@ class DynamicRelaxation:
             self.nodes += self.velocities * self.dt
 
             # Store frames for animation
-            if iteration % save_every_n == 0:
-                self.frames.append(np.copy(self.nodes))
+            self.frames.append(np.copy(self.nodes))
 
             # Check for convergence
             max_displacement = np.max(np.abs(self.velocities))
@@ -106,164 +105,19 @@ class DynamicRelaxation:
         print(f"Converged in {iteration} iterations.")
         return self.nodes
 
-    def plot_structure(self, nodes, original_nodes=None):
 
-        edges = self.elements
-        fixed = self.fixed
-        external_forces = self.external_forces
+nodes, elements, elements_preload, nodes_load, fixed_nodes = generate_struct()
 
-        """Plot the structural configuration in 3D."""
-        fig = plt.figure(figsize=(8, 6))
-        ax = fig.add_subplot(111, projection="3d")
-
-        # Plot original structure if provided
-        if original_nodes is not None:
-            for edge in edges:
-                ax.plot(
-                    *zip(*np.array(original_nodes)[edge - 1]),
-                    color="gray",
-                    linestyle="dashed",
-                    linewidth=0.5,
-                    alpha=0.5,
-                )
-
-        # Plot final structure
-        for edge in edges:
-            ax.plot(*zip(*nodes[edge - 1]), color="black")
-
-        # Identify nodes with applied loads
-        loaded_nodes = np.any(external_forces != 0, axis=1)
-
-        # Color nodes based on type
-        nodes = np.array(nodes)
-        ax.scatter(
-            nodes[:, 0],
-            nodes[:, 1],
-            nodes[:, 2],
-            color="black",
-            label="Free Nodes",
-        )
-        ax.scatter(
-            nodes[np.array(fixed) - 1, 0],
-            nodes[np.array(fixed) - 1, 1],
-            nodes[np.array(fixed) - 1, 2],
-            color="red",
-            label="Fixed Nodes",
-        )
-        ax.scatter(
-            nodes[loaded_nodes, 0],
-            nodes[loaded_nodes, 1],
-            nodes[loaded_nodes, 2],
-            color="green",
-            label="Loaded Nodes",
-        )
-
-        # Label nodes with their index, shifted slightly to avoid overlap
-        for i, (x, y, z) in enumerate(nodes):
-            ax.text(
-                x + 0.15,
-                y + 0.15,
-                z + 0.01,
-                str(i),
-                fontsize=12,
-                ha="right",
-                color="black",
-            )
-
-        ax.legend()
-        plt.show()
-
-    def animate_convergence(self, save_every_n):
-        """Create an animation of the convergence process."""
-        fig, ax = plt.subplots(figsize=(8, 6))
-        ax = fig.add_subplot(111, projection="3d")
-
-        elements = self.elements
-        fixed = self.fixed
-        external_forces = self.external_forces
-
-        def update(frame):
-            ax.clear()
-            nodes = self.frames[frame]
-            for edge in elements:
-                ax.plot(*zip(*nodes[edge - 1]), color="black")
-
-            loaded_nodes = np.any(external_forces != 0, axis=1)
-            ax.scatter(nodes[:, 0], nodes[:, 1], nodes[:, 2], color="black")
-            ax.scatter(
-                nodes[np.array(fixed) - 1, 0],
-                nodes[np.array(fixed) - 1, 1],
-                nodes[np.array(fixed) - 1, 2],
-                color="red",
-                label="Fixed Nodes",
-            )
-            ax.scatter(
-                nodes[loaded_nodes, 0],
-                nodes[loaded_nodes, 1],
-                nodes[loaded_nodes, 2],
-                color="green",
-            )
-
-            for i, (x, y, z) in enumerate(nodes):
-                ax.text(
-                    x + 0.15,
-                    y + 0.15,
-                    z + 0.01,
-                    str(i),
-                    fontsize=12,
-                    ha="right",
-                    color="black",
-                )
-
-            # Calculate max displacement as the maximum change in node position
-            if frame > 0:
-                prev_nodes = self.frames[frame - 1]
-                displacement = np.linalg.norm(nodes - prev_nodes, axis=1)
-                max_displacement = np.max(displacement)
-            else:
-                max_displacement = 0.0
-
-            # Display iteration number and max disp (in scientific notation)
-            ax.text(
-                0.1,
-                3.5,
-                0.1,
-                f"Iteration: {frame * save_every_n}\n"
-                f"Max Disp (m): {max_displacement:.3e}",
-                fontsize=12,
-                color="blue",
-            )
-            ax.set_xlim(-5, 5)
-            ax.set_ylim(-5, 5)
-            ax.set_zlim(-3, 1)
-
-        _ = animation.FuncAnimation(
-            fig, update, frames=len(self.frames), interval=50
-        )
-        plt.show()
-
-
-# Example usage
-# nodes, elements, external_loads, fixed_nodes = generate_struct(
-#         5, spacing=2.5
-#     )
-
-nodes, elements, elements_preload, external_loads, fixed_nodes = (
-    generate_struct()
+n, e, e_l, n_l, n_f = generate_struct_arrays(
+    nodes, elements, elements_preload, nodes_load, fixed_nodes
 )
 
-external_loads[5] = [0.0, 0.0, -1.5]  # Apply downward force to node 5
+dr = DynamicRelaxation(n, e, n_f, external_forces=n_l)
 
-dr = DynamicRelaxation(
-    nodes, elements, fixed_nodes, external_forces=external_loads
-)
-
-dr.plot_structure(dr.nodes)
+plot_network3D(n, e, n_l, n_f)
 
 nodes_new = dr.solve(save_every_n=10)
 
-dr.plot_structure(
-    nodes_new,
-)
+plot_network3D(dr.nodes, dr.elements, dr.external_forces, dr.fixed)
 
-dr.animate_convergence(10)
+plot_animation(dr.frames, e, n_f)
