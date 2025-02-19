@@ -1,7 +1,6 @@
 import numpy as np
-import logging
 
-from structures.struct_2 import generate_struct
+from structures.struct_4 import generate_struct
 
 from helper_matrix import (
     generate_struct_arrays,
@@ -163,7 +162,7 @@ def main(debug=False, solver="FD_fixed"):
 
     # Set convergence criteria
     TOL = 1e-4
-    MAX_ITER = 100
+    MAX_ITER = 10000
 
     FD_factor = 1
     L_0 = np.copy(L)
@@ -174,7 +173,7 @@ def main(debug=False, solver="FD_fixed"):
     v_x = 0
     v_y = 0
     v_z = 0
-    gamma = 0.7
+    gamma = 1.0
 
     first = True
     KE_prev2 = 0.0  # KE at t-2
@@ -301,23 +300,19 @@ def main(debug=False, solver="FD_fixed"):
                 q2, KE_q, x_interp, y_interp = quadratic_interp(
                     [KE_prev2, KE_prev, KE]
                 )
-                plot_quadratic_interp(
-                    [0, 0.5, 1.0],
-                    [KE_prev2, KE_prev, KE],
-                    x_interp,
-                    y_interp,
-                    q1,
-                    q2,
-                    KE_q,
-                )
+                # plot_quadratic_interp(
+                #     [0, 0.5, 1.0],
+                #     [KE_prev2, KE_prev, KE],
+                #     x_interp,
+                #     y_interp,
+                #     q1,
+                #     q2,
+                #     KE_q,
+                #     t=iteration,
+                # )
 
                 q = q1
-
-                debug_energy_peak(q)
-
-                #     # q,KE_q = quadratic_interpol([KE_prev2, KE_prev, KE])
-                #     KE_q = quadratic_interpolate2([KE_prev2, KE_prev, KE],q)
-                #     logging.debug("\nq: %s", q)
+                debug_energy_peak(q1)
 
                 d_x -= h * (1 + q) * gamma * v_x + gamma * (q) * x
                 d_y -= h * (1 + q) * gamma * v_y + gamma * (q) * y
@@ -327,10 +322,8 @@ def main(debug=False, solver="FD_fixed"):
                 # Reset velocities to 0 (kinetic damping)
                 first = True
 
-            #     # KE_q = quadratic_interpolate([KE_prev2, KE_prev, KE])
-
-            #     before = debug_table(q, KE_q, [KE_prev2, KE_prev, KE])
-            #     # KE = KE_q
+                # _ = debug_table(q1, KE_q, [KE_prev2, KE_prev, KE])
+                # KE = np.copy(KE_q)
 
             KE_history.append(KE)
 
@@ -379,7 +372,7 @@ def main(debug=False, solver="FD_fixed"):
 
     plot_kinetic_energy(KE_history, solver)
 
-    plot_animation(node_positions, e, n_f)
+    plot_animation(node_positions, e, n_f, t=1)
 
     plot_network3D(n, e, n_l, n_f)
 

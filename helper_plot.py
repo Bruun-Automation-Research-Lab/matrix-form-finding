@@ -181,7 +181,7 @@ def plot_network_animated(ax, nodes, elements, fixed_nodes, iteration):
     ax.legend()
 
 
-def plot_animation(node_positions, e, n_f):
+def plot_animation(node_positions, e, n_f, t):
     # Animation update function
     def update(frame):
         plot_network_animated(ax, node_positions[frame], e, n_f, frame)
@@ -191,7 +191,7 @@ def plot_animation(node_positions, e, n_f):
     ax = fig.add_subplot(111, projection="3d")
 
     _ = animation.FuncAnimation(
-        fig, update, frames=len(node_positions), interval=30
+        fig, update, frames=len(node_positions), interval=t
     )
 
     plt.show()
@@ -210,7 +210,7 @@ def plot_kinetic_energy(KE, solver):
         plt.show()
 
 
-def plot_quadratic_interp(x, y, x_interp, y_interp, q1, q2, KE_q):
+def plot_quadratic_interp(x, y, x_interp, y_interp, q1, q2, KE_q, t=0):
 
     # Determine max limits considering both series
     x_all = np.concatenate((x, x_interp))
@@ -233,6 +233,7 @@ def plot_quadratic_interp(x, y, x_interp, y_interp, q1, q2, KE_q):
     plt.xlabel("Time")
     plt.ylabel("Energy")
     plt.title("Plot of Energy at Time-Steps")
+    plt.title(f"Plot of Energy, Iteration = {t:d}")
 
     # Set axis limits based on the largest range
     plt.xlim(min(x_all) - x_margin, max(x_all) + x_margin)
