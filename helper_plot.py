@@ -208,3 +208,94 @@ def plot_kinetic_energy(KE, solver):
         plt.legend()
         plt.grid(True)
         plt.show()
+
+
+def plot_quadratic_interp(x, y, x_interp, y_interp, q1, q2, KE_q):
+
+    # Determine max limits considering both series
+    x_all = np.concatenate((x, x_interp))
+    y_all = np.concatenate((y, y_interp))
+
+    x_margin = 0.1 * (max(x_all) - min(x_all))
+    y_margin = 0.2 * (max(y_all) - min(y_all))
+
+    # Plot the data
+    plt.plot(x, y, marker="o", linestyle="-", label="Original Data")
+    plt.plot(
+        x_interp,
+        y_interp,
+        linestyle="-",
+        color="red",
+        label="Quadratic Interpolation",
+    )
+    plt.scatter(q2, KE_q, marker="o", color="red", s=40, label="Max Point")
+
+    plt.xlabel("Time")
+    plt.ylabel("Energy")
+    plt.title("Plot of Energy at Time-Steps")
+
+    # Set axis limits based on the largest range
+    plt.xlim(min(x_all) - x_margin, max(x_all) + x_margin)
+    plt.ylim(min(y_all) - y_margin, max(y_all) + y_margin)
+
+    # Set x-axis ticks every 0.1
+    plt.xticks(np.arange(min(x_all), max(x_all) + 0.1, 0.1))
+
+    # Highlight specific major ticks
+    major_ticks = [0.00, 0.25, 0.5, 0.75, 1.00]
+    plt.gca().set_xticks(major_ticks, minor=False)
+    plt.gca().tick_params(
+        axis="x", which="major", length=8, width=2, color="red"
+    )
+
+    # Add bracketed text below the major tick marks
+    tick_labels = [
+        r"$t - \frac{3\Delta t}{2}$",
+        r"$t - \Delta t$",
+        r"$t - \frac{\Delta t}{2}$",
+        r"$t$",
+        r"$t + \frac{\Delta t}{2}$",
+    ]
+
+    for tick, label in zip(major_ticks, tick_labels):
+        plt.text(
+            tick, min(y_all) - y_margin * 0.4, label, ha="center", fontsize=10
+        )
+
+    # Add red text for q-values at 0.25, 0.5, 0.75
+    q_labels = ["q = 1", "q = 0.5", "q = 0"]
+    q_positions = [0.25, 0.5, 0.75]
+
+    for q_pos, q_label in zip(q_positions, q_labels):
+        plt.text(
+            q_pos,
+            min(y_all) - y_margin * 0.8,
+            q_label,
+            color="red",
+            fontsize=8,
+            ha="center",
+        )
+
+    # Annotate the maximum point
+    plt.text(
+        q2,
+        KE_q + 0.6 * y_margin,
+        f"({q2:.3f}, {KE_q:.3e})",
+        fontsize=8,
+        ha="center",
+        color="blue",
+    )
+    plt.text(
+        q2,
+        KE_q + 0.2 * y_margin,
+        f"({q1:.3f}, {KE_q:.3e})",
+        fontsize=8,
+        ha="center",
+        color="red",
+    )
+
+    # Add legend
+    plt.legend()
+
+    plt.grid(True)
+    plt.show()

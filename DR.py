@@ -22,14 +22,14 @@ class DynamicRelaxation:
         elements,
         fixed,
         mass=1.0,
-        damping=0.90,
+        damping=0.70,
         dt=0.1,
         tol=1e-3,
         external_forces=None,
     ):
         # Convert the nodes dictionary into a NumPy array
         self.nodes = nodes  # Node coordinates
-        self.elements = np.array(elements, dtype=int)  # connectivity
+        self.elements = elements  # connectivity
         self.fixed = fixed  # Fixed nodes (list of node indices)
         self.mass = mass  # Mass per node
         self.damping = damping  # Damping factor
@@ -46,7 +46,7 @@ class DynamicRelaxation:
             self.nodes[edge[1] - 1] - self.nodes[edge[0] - 1]
         )
 
-    def solve(self, target_length=None, save_every_n=20):
+    def solve(self, target_length=None):
         """Iteratively solve for equilibrium."""
         converged = False
         iteration = 0
@@ -74,7 +74,7 @@ class DynamicRelaxation:
             forces += self.external_forces
 
             # Apply boundary conditions (fix the velocity of fixed nodes)
-            forces[np.array(self.fixed) - 1] = 0
+            forces[self.fixed.flatten() == 1] = 0
 
             # Update velocities and positions
             self.velocities += (forces / self.mass) * self.dt
@@ -116,7 +116,7 @@ dr = DynamicRelaxation(n, e, n_f, external_forces=n_l)
 
 plot_network3D(n, e, n_l, n_f)
 
-nodes_new = dr.solve(save_every_n=10)
+nodes_new = dr.solve()
 
 plot_network3D(dr.nodes, dr.elements, dr.external_forces, dr.fixed)
 

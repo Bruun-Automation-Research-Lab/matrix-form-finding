@@ -77,14 +77,34 @@ def debug_stiffness_FD(K, D, D_f):
     log.debug("\nD_f, [n_free x n_fixed]:\n %s", D_f)
 
 
-def debug_delta_nodes(d_x, d_y, d_z, n_new):
+def debug_deltas(d_x, d_y, d_z):
     log.debug("")
     log.debug("#-------------------------")
     log.debug("\nd_x [n_free x 1]:\n %s", d_x)
     log.debug("\nd_y [n_free x 1]:\n %s", d_y)
     log.debug("\nd_z [n_free x 1]:\n %s", d_z)
 
+
+def debug_new_nodes(n_new):
+    log.debug("")
+    log.debug("#-------------------------")
     log.debug("\nnodes new []:\n %s\n", n_new)
+
+
+def debug_velocity_kinetic_energy(v_x, v_y, v_z, KE):
+    log.debug("")
+    log.debug("#-------------------------")
+    log.debug("\nv_x:\n %s", v_x)
+    log.debug("\nv_y:\n %s", v_y)
+    log.debug("\nv_z:\n %s", v_z)
+    log.debug("")
+    log.debug("\nKINETIC ENERGY: %s", KE)
+
+
+def debug_energy_peak(q):
+    log.debug("")
+    log.debug("\nKINETIC ENERGY PEAK REACHED. APPLYING DAMPING.")
+    log.debug(f"Interpolated q = {q:.3f}")
 
 
 def debug_error(L_total, error):
@@ -107,6 +127,32 @@ def debug_final(n_new, L_new, F, Q):
         "\nFinal Element Forces (f/f_avg):\n %s",
         np.diag(F) / np.average(np.diag(F)),
     )
+
+
+def debug_table2(r1):
+    """
+    This function generates a debug table
+
+    Args:
+    - y_star (float): The value of t* (time).
+    - E_star (float): The energy at t* (E(t*)).
+    - energy_values (list of floats): List containing the other energy values.
+    """
+
+    # Ensure energy_values has exactly 3 points
+    if len(r1) != 3:
+        raise ValueError("energy_values should contain exactly 3 points.")
+
+    # Prepare the ASCII table with reordered columns
+    table = f"""
+    +----+------------+-----------+-----------+
+    | t  | t - 3dt/2  | t - dt/2  | t + dt/2  |
+    +----+------------+-----------+-----------+
+    | E  | {r1[0]:.3e}  | {r1[1]:.3e} | {r1[2]:.3e} |
+    +----+------------+-----------+-----------+
+    """
+
+    log.debug("\n%s", table)
 
 
 def debug_table(y_star, E_star, energy_values):

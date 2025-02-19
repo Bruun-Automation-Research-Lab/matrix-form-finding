@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 
-from structures.struct_4 import generate_struct
+from structures.struct_2 import generate_struct
 
 from helper_matrix import (
     generate_struct_arrays,
@@ -19,16 +19,21 @@ from helper_plot import (
     plot_network3D,
     plot_animation,
     plot_kinetic_energy,
+    plot_quadratic_interp,
 )
 from helper_log import (
     setup_logging,
-    debug_table,
     debug_initial_struct,
     debug_iteration,
     debug_force_and_density,
     debug_stiffness,
     debug_stiffness_FD,
-    debug_delta_nodes,
+    debug_deltas,
+    debug_new_nodes,
+    debug_velocity_kinetic_energy,
+    debug_energy_peak,
+    debug_table,
+    debug_table2,
     debug_error,
     debug_final,
 )
@@ -102,8 +107,7 @@ def generate_s(elements, N, ratio_outer_to_inner=1):
     return s
 
 
-def quadratic_interp(y_points):
-
+def quadratic_interp(y_points, num_points=100):
     x_points = np.array([0.0, 0.5, 1.0])
 
     # Fit a quadratic polynomial
@@ -118,43 +122,11 @@ def quadratic_interp(y_points):
     # Find the maximum y-value
     y_max = np.polyval(coeffs, x_max)
 
-    return x_max, y_max
+    # Generate smooth x values for plotting
+    x_interp = np.linspace(min(x_points), max(x_points), num_points)
+    y_interp = np.polyval(coeffs, x_interp)
 
-
-def quadratic_interpolate2(y_values, t_star):
-    """
-    Interpolates the y-value at time t_star using quadratic interpolation.
-
-    Parameters:
-    y_values: List or array of three y-values.
-    t_star: The time at which the interpolation is done.
-
-    Returns:
-    Interpolated y-value at t_star.
-    """
-    # Time values are fixed to [0, 0.5, 1.0]
-    t_values = [0.0, 0.5, 1.0]
-
-    # Set up the matrix M for quadratic interpolation
-    M = np.array(
-        [
-            [t_values[0] ** 2, t_values[0], 1],
-            [t_values[1] ** 2, t_values[1], 1],
-            [t_values[2] ** 2, t_values[2], 1],
-        ]
-    )
-
-    # Vector of known y-values
-    y = np.array(y_values)
-
-    # Solve for the coefficients a, b, c of the quadratic equation
-    coefficients = np.linalg.solve(M, y)
-
-    # Extract coefficients
-    a, b, c = coefficients
-
-    # Calculate and return the interpolated value at t_star
-    return a * t_star**2 + b * t_star + c
+    return x_max, y_max, x_interp, y_interp
 
 
 # Main computation
@@ -191,7 +163,7 @@ def main(debug=False, solver="FD_fixed"):
 
     # Set convergence criteria
     TOL = 1e-4
-    MAX_ITER = 1000
+    MAX_ITER = 100
 
     FD_factor = 1
     L_0 = np.copy(L)
@@ -239,6 +211,8 @@ def main(debug=False, solver="FD_fixed"):
                 p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f
             )
 
+            debug_deltas(d_x, d_y, d_z)
+
         elif solver == "FD_iter":
             F = FD_factor * np.eye(len(e))
             Q = F @ np.linalg.inv(L)
@@ -257,6 +231,8 @@ def main(debug=False, solver="FD_fixed"):
             d_x, d_y, d_z = nodes_delta(
                 p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f
             )
+
+            debug_deltas(d_x, d_y, d_z)
 
         elif solver == "DR":
             F = create_force_matrix(L, L_0, E, A, F_0)
@@ -294,49 +270,62 @@ def main(debug=False, solver="FD_fixed"):
 
             # M = h^2/2 * K, V1 = V0 + h/M * f (normal)
             # M = h^2/2 * K, V1 = h/2*M * f (first iteration)
-
             if first:
-                v_x = h * (1 / h**2) * x
-                v_y = h * (1 / h**2) * y
-                v_z = h * (1 / h**2) * z
+                # Reset the velocity
+                v_x = gamma * h * (1 / h**2) * x
+                v_y = gamma * h * (1 / h**2) * y
+                v_z = gamma * h * (1 / h**2) * z
+                first = True
             else:
-                v_x += h * (2 / h**2) * x
-                v_y += h * (2 / h**2) * y
-                v_z += h * (2 / h**2) * z
+                # This is V,t-1 + v,t
+                v_x += gamma * h * (2 / h**2) * x
+                v_y += gamma * h * (2 / h**2) * y
+                v_z += gamma * h * (2 / h**2) * z
 
-            logging.debug("\nv_x:\n %s", v_x)
-            logging.debug("\nv_y:\n %s", v_y)
-            logging.debug("\nv_z:\n %s", v_z)
-
-            # Uhhhhh where is V,t-1? need to add to v,t right?
-            d_x = gamma * v_x * h
-            d_y = gamma * v_y * h
-            d_z = gamma * v_z * h
+            d_x = v_x * h
+            d_y = v_y * h
+            d_z = v_z * h
 
             KE = compute_kinetic_energy(K_mod, v_x, v_y, v_z, h)
-            logging.debug("\nKINETIC ENERGY: %s", KE)
+
+            debug_velocity_kinetic_energy(v_x, v_y, v_z, KE)
+            debug_deltas(d_x, d_y, d_z)
+            debug_table2([KE_prev2, KE_prev, KE])
+
             before = False
 
-            # # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
-            # if KE_prev2 < KE_prev > KE:
-            #     logging.debug(
-            #         "\nKINETIC ENERGY PEAK REACHED. APPLYING DAMPING."
-            #     )
+            # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
+            if KE_prev2 < KE_prev > KE:
 
-            #     q = 0.5
-            #     q = (KE_prev - KE) / ((KE_prev - KE) - (KE_prev2 - KE_prev))
-            #     logging.debug("\nq: %s", q)
-            #     # q,KE_q = quadratic_interpol([KE_prev2, KE_prev, KE])
-            #     KE_q = quadratic_interpolate2([KE_prev2, KE_prev, KE],q)
-            #     logging.debug("\nq: %s", q)
+                q1 = (KE_prev - KE) / ((KE_prev - KE) - (KE_prev2 - KE_prev))
+                q2, KE_q, x_interp, y_interp = quadratic_interp(
+                    [KE_prev2, KE_prev, KE]
+                )
+                plot_quadratic_interp(
+                    [0, 0.5, 1.0],
+                    [KE_prev2, KE_prev, KE],
+                    x_interp,
+                    y_interp,
+                    q1,
+                    q2,
+                    KE_q,
+                )
 
-            #     d_x -= h * (1 + q) * v_x + (q) * x
-            #     d_y -= h * (1 + q) * v_x + (q) * x
-            #     d_z -= h * (1 + q) * v_x + (q) * x
+                q = q1
 
-            #     # Reset velocities to 0 (kinetic damping)
-            #     v_x[:], v_y[:], v_z[:] = 0, 0, 0
-            #     first = True
+                debug_energy_peak(q)
+
+                #     # q,KE_q = quadratic_interpol([KE_prev2, KE_prev, KE])
+                #     KE_q = quadratic_interpolate2([KE_prev2, KE_prev, KE],q)
+                #     logging.debug("\nq: %s", q)
+
+                d_x -= h * (1 + q) * gamma * v_x + gamma * (q) * x
+                d_y -= h * (1 + q) * gamma * v_y + gamma * (q) * y
+                d_z -= h * (1 + q) * gamma * v_z + gamma * (q) * z
+                debug_deltas(d_x, d_y, d_z)
+
+                # Reset velocities to 0 (kinetic damping)
+                first = True
 
             #     # KE_q = quadratic_interpolate([KE_prev2, KE_prev, KE])
 
@@ -365,16 +354,15 @@ def main(debug=False, solver="FD_fixed"):
         print(
             f"Iteration {iteration + 1}: "
             f"Total Len = {L_total_new:.3f}, "
-            f"Max error = {error:.3f}"
+            f"Max error = {error:.3e}"
         )
 
         # Update for next iteration
         n = n_new
         L = L_new
         L_total = L_total_new
-        first = True
 
-        debug_delta_nodes(d_x, d_y, d_z, n_new)
+        debug_new_nodes(n_new)
         debug_error(L_total, error)
 
         if error < TOL:
