@@ -17,9 +17,7 @@ def setup_logging(debug=False):
         log.basicConfig(level=log.INFO)
 
 
-def debug_initial_struct(
-    n, e, e_l, n_l, n_f, connectivity_matrix, C, C_f, p_x, p_y, p_z
-):
+def debug_struct_input(n, e, e_l, n_l, n_f):
 
     log.debug("######################")
     log.debug("# INPUT STRUCTURE")
@@ -31,15 +29,19 @@ def debug_initial_struct(
     log.debug("\nNodes (Loads):\n %s", n_l)
     log.debug("\nNodes (Fixed):\n %s", n_f)
 
+
+def debug_struct_matrices(C_total, C, C_f, p_x, p_y, p_z):
     log.debug("")
-    log.debug("#-------------------------")
+    log.debug("######################")
+    log.debug("# INPUT STRUCTURE MATRICES")
+    log.debug("######################")
     log.debug("\np_x:\n %s", p_x)
     log.debug("\np_y:\n %s", p_y)
     log.debug("\np_z:\n %s", p_z)
 
     log.debug("")
     log.debug("#-------------------------")
-    log.debug("\nConnectivity Matrix:\n %s", connectivity_matrix)
+    log.debug("\nConnectivity Matrix:\n %s", C_total)
     log.debug("\nC (free n), m x n_free:\n %s", C)
     log.debug("\nCf (fixed n), m x n_fixed:\n %s", C_f)
 
@@ -59,12 +61,15 @@ def debug_force_and_density(F, Q):
     log.debug("\nForce Density, [m x m] -> [m x 1]:\n %s", np.diag(Q))
 
 
-def debug_stiffness(K_g, K_e, K, K_mod):
+def debug_stiffness(K_g, K_e, K, K_mod=None):
+
+    if K_mod is None:
+        K_mod = K  # Assign default value inside the function
+
     log.debug("")
     log.debug("#-------------------------")
     log.debug("\nElement K_g, diag:\n %s", np.diag(K_g))
     log.debug("\nElement K_e, diag:\n %s", np.diag(K_e))
-
     log.debug("\nK (free nodes):\n %s", K)
     log.debug("\nK (free nodes), diag:\n %s", np.diag(K_mod))
 
@@ -122,6 +127,7 @@ def debug_final(n_new, L_new, F, Q):
     log.debug("\nFinal Nodes:\n %s", n_new)
     log.debug("\nFinal Element Lengths:\n %s", np.diag(L_new))
     log.debug("\nFinal Element Forces:\n %s", np.diag(F))
+    # log.debug("\nFinal Element Forces:\n %s", np.diag(Q)*np.diag(L_new))
     log.debug("\nFinal Element Force Densities:\n %s", np.diag(Q))
     log.debug(
         "\nFinal Element Forces (f/f_avg):\n %s",

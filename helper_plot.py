@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import MaxNLocator
 
 
 def plot_network_views(nodes, elements, nodes_loads, nodes_fixed):
@@ -321,14 +322,32 @@ def plot_animation(node_positions, e, n_f, t):
 
 def plot_kinetic_energy(KE, solver):
 
-    if solver == "DR":
-        plt.figure(figsize=(8, 5))
-        plt.plot(KE, label="Kinetic Energy", color="b")
-        plt.xlabel("Iteration")
-        plt.ylabel("Kinetic Energy")
-        plt.title("Kinetic Energy vs. Iteration")
-        plt.legend()
-        plt.grid(True)
+    if solver in ["DR_imp", "DR_leap"]:
+        # Create a figure with 1 row and 2 columns
+        fig, axes = plt.subplots(1, 2, figsize=(16, 5))
+
+        # Plot the full time series
+        axes[0].plot(KE, label="Kinetic Energy", color="b")
+        axes[0].set_xlabel("Iteration")
+        axes[0].set_ylabel("Kinetic Energy")
+        axes[0].set_title("Kinetic Energy vs. Iteration (Full Time Series)")
+        axes[0].legend()
+        axes[0].grid(True)
+        # axes[0].xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        # Plot the time series without the first 5 iterations
+        axes[1].plot(
+            range(5, len(KE)), KE[5:], label="Kinetic Energy", color="r"
+        )
+        axes[1].set_xlabel("Iteration")
+        axes[1].set_ylabel("Kinetic Energy")
+        axes[1].set_title("Kinetic Energy vs. Iteration (After 5 Iterations)")
+        axes[1].legend()
+        axes[1].grid(True)
+        # axes[1].xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        # Show the plots side by side
+        plt.tight_layout()
         plt.show()
 
 
