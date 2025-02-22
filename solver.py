@@ -10,7 +10,7 @@ from structures.struct_3 import generate_struct
 
 # Main computation
 def main(debug=False, solver="FD_fixed"):
-    hl.setup_logging(debug)
+    hl.setup_logging(debug, "debug_log_solver.txt")
 
     # nodes, elements, external_loads, fixed_nodes = generate_struct(5)
     nodes, elements, elements_preload, nodes_load, nodes_fixed = (
@@ -50,7 +50,7 @@ def main(debug=False, solver="FD_fixed"):
     A = np.eye(len(e))
 
     # DR variables
-    h = 0.1
+    h = 1.0
     v_x = np.zeros_like(p_x)
     v_y = np.zeros_like(p_y)
     v_z = np.zeros_like(p_z)
@@ -128,19 +128,18 @@ def main(debug=False, solver="FD_fixed"):
             K = C.T @ K_total @ C
 
             # Kronecker delta as an identity matrix
-            # This seems to destabilize when doing leapfrog integration
+            # Seems to destabilize sometimes when doing leapfrog
             # delta = np.eye(K.shape[0])
-            # K_mod = K * delta
-            K_mod = K
+            # K = K * delta
 
-            hl.debug_stiffness(K_g, K_e, K, K_mod)
+            hl.debug_stiffness(K_g, K_e, K)
 
             D = C.T @ Q @ C
             D_f = C.T @ Q @ C_f
 
             # Compute new positions
             x, y, z = hs.nodes_delta(
-                p_x, p_y, p_z, K_mod, D, D_f, x, y, z, x_f, y_f, z_f
+                p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f
             )
 
             # M = h^2/2 * K, V1 = V0 + h/M * f (normal)
@@ -150,7 +149,7 @@ def main(debug=False, solver="FD_fixed"):
                 v_x = gamma * h * (1 / h**2) * x
                 v_y = gamma * h * (1 / h**2) * y
                 v_z = gamma * h * (1 / h**2) * z
-                first = True
+                first = False
             else:
                 # This is V,t-1 + v,t
                 v_x += gamma * h * (2 / h**2) * x
@@ -161,7 +160,7 @@ def main(debug=False, solver="FD_fixed"):
             d_y = v_y * h
             d_z = v_z * h
 
-            KE = hs.compute_kinetic_energy(K_mod, v_x, v_y, v_z, h)
+            KE = hs.compute_kinetic_energy(K, v_x, v_y, v_z, h)
 
             hl.debug_velocity_kinetic_energy(v_x, v_y, v_z, KE)
             hl.debug_deltas(d_x, d_y, d_z)

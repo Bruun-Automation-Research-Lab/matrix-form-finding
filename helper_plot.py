@@ -5,7 +5,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.ticker import MaxNLocator
 
 
-def plot_network_views(nodes, elements, nodes_loads, nodes_fixed):
+def plot_network_views(
+    nodes, elements, nodes_loads, nodes_fixed, plot_text=False
+):
     """
     Create a four-view plot: one large 3D view and 3 small 2D projections.
     """
@@ -28,53 +30,60 @@ def plot_network_views(nodes, elements, nodes_loads, nodes_fixed):
         z_vals = [nodes[n1, 2], nodes[n2, 2]]
         ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.8)
 
-        # Compute midpoint for element numbering
-        mid_x = (nodes[n1, 0] + nodes[n2, 0]) / 2
-        mid_y = (nodes[n1, 1] + nodes[n2, 1]) / 2
-        mid_z = (nodes[n1, 2] + nodes[n2, 2]) / 2
-        ax.text(
-            mid_x + text_offset,
-            mid_y + text_offset,
-            mid_z + text_offset,
-            str(i + 1),
-            color="green",
-            fontsize=7,
-        )  # Offset element number slightly
+        if plot_text:
+            # Compute midpoint for element numbering
+            mid_x = (nodes[n1, 0] + nodes[n2, 0]) / 2
+            mid_y = (nodes[n1, 1] + nodes[n2, 1]) / 2
+            mid_z = (nodes[n1, 2] + nodes[n2, 2]) / 2
+            ax.text(
+                mid_x + text_offset,
+                mid_y + text_offset,
+                mid_z + text_offset,
+                str(i + 1),
+                color="green",
+                fontsize=7,
+            )  # Offset element number slightly
 
     # Plot nodes with numbers
     for i, (x, y, z) in enumerate(nodes):
         if nodes_fixed[i]:  # Fixed node
             ax.scatter(x, y, z, color="blue", s=20)
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="blue",  # Blue text for fixed nodes
-                fontsize=7,
-                weight="bold",  # Bold text for fixed nodes
-            )
         elif np.any(nodes_loads[i] != 0):  # Loaded node
             ax.scatter(x, y, z, color="red", s=30)
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="red",  # Red text for loaded nodes
-                fontsize=7,
-                weight="bold",  # Bold text for loaded nodes
-            )
         else:  # Normal node
             ax.scatter(x, y, z, color="black", s=10)
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="black",  # Normal black text
-                fontsize=7,
-            )
+
+    if plot_text:
+        for i, (x, y, z) in enumerate(nodes):
+            if nodes_fixed[i]:  # Fixed node
+                ax.text(
+                    x + text_offset,
+                    y + text_offset,
+                    z + text_offset,
+                    str(i + 1),
+                    color="blue",  # Blue text for fixed nodes
+                    fontsize=7,
+                    weight="bold",  # Bold text for fixed nodes
+                )
+            elif np.any(nodes_loads[i] != 0):  # Loaded node
+                ax.text(
+                    x + text_offset,
+                    y + text_offset,
+                    z + text_offset,
+                    str(i + 1),
+                    color="red",  # Red text for loaded nodes
+                    fontsize=7,
+                    weight="bold",  # Bold text for loaded nodes
+                )
+            else:  # Normal node
+                ax.text(
+                    x + text_offset,
+                    y + text_offset,
+                    z + text_offset,
+                    str(i + 1),
+                    color="black",  # Normal black text
+                    fontsize=7,
+                )
 
     # Calculate axis limits based on the node locations
     x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
@@ -127,87 +136,89 @@ def plot_network_views(nodes, elements, nodes_loads, nodes_fixed):
     plt.show()
 
 
-def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection="3d")
+# def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
+#     fig = plt.figure()
+#     ax = fig.add_subplot(111, projection="3d")
 
-    text_offset = 0.07  # Adjust this value if necessary
+#     text_offset = 0.07  # Adjust this value if necessary
 
-    # Plot elements with numbers
-    for i, (n1, n2) in enumerate(
-        elements - 1
-    ):  # Convert 1-based to 0-based indexing
-        x_vals = [nodes[n1, 0], nodes[n2, 0]]
-        y_vals = [nodes[n1, 1], nodes[n2, 1]]
-        z_vals = [nodes[n1, 2], nodes[n2, 2]]
-        ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.8)
+#     # Plot elements with numbers
+#     for i, (n1, n2) in enumerate(
+#         elements - 1
+#     ):  # Convert 1-based to 0-based indexing
+#         x_vals = [nodes[n1, 0], nodes[n2, 0]]
+#         y_vals = [nodes[n1, 1], nodes[n2, 1]]
+#         z_vals = [nodes[n1, 2], nodes[n2, 2]]
+#         ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.8)
 
-        # Compute midpoint for element numbering
-        mid_x = (nodes[n1, 0] + nodes[n2, 0]) / 2
-        mid_y = (nodes[n1, 1] + nodes[n2, 1]) / 2
-        mid_z = (nodes[n1, 2] + nodes[n2, 2]) / 2
-        ax.text(
-            mid_x + text_offset,
-            mid_y + text_offset,
-            mid_z + text_offset,
-            str(i + 1),
-            color="green",
-            fontsize=7,
-        )  # Offset element number slightly
+#         # Compute midpoint for element numbering
+#         mid_x = (nodes[n1, 0] + nodes[n2, 0]) / 2
+#         mid_y = (nodes[n1, 1] + nodes[n2, 1]) / 2
+#         mid_z = (nodes[n1, 2] + nodes[n2, 2]) / 2
+#         ax.text(
+#             mid_x + text_offset,
+#             mid_y + text_offset,
+#             mid_z + text_offset,
+#             str(i + 1),
+#             color="green",
+#             fontsize=7,
+#         )  # Offset element number slightly
 
-    # Plot nodes with numbers
-    for i, (x, y, z) in enumerate(nodes):
-        if nodes_fixed[i]:  # Fixed node
-            ax.scatter(x, y, z, color="blue", s=20)
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="blue",  # Blue text for fixed nodes
-                fontsize=7,
-                weight="bold",  # Bold text for fixed nodes
-            )
-        elif np.any(nodes_loads[i] != 0):  # Loaded node
-            ax.scatter(x, y, z, color="red", s=30)
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="red",  # Red text for loaded nodes
-                fontsize=7,
-                weight="bold",  # Bold text for loaded nodes
-            )
-        else:  # Normal node
-            ax.scatter(x, y, z, color="black", s=10)
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="black",  # Normal black text
-                fontsize=7,
-            )
+#     # Plot nodes with numbers
+#     for i, (x, y, z) in enumerate(nodes):
+#         if nodes_fixed[i]:  # Fixed node
+#             ax.scatter(x, y, z, color="blue", s=20)
+#             ax.text(
+#                 x + text_offset,
+#                 y + text_offset,
+#                 z + text_offset,
+#                 str(i + 1),
+#                 color="blue",  # Blue text for fixed nodes
+#                 fontsize=7,
+#                 weight="bold",  # Bold text for fixed nodes
+#             )
+#         elif np.any(nodes_loads[i] != 0):  # Loaded node
+#             ax.scatter(x, y, z, color="red", s=30)
+#             ax.text(
+#                 x + text_offset,
+#                 y + text_offset,
+#                 z + text_offset,
+#                 str(i + 1),
+#                 color="red",  # Red text for loaded nodes
+#                 fontsize=7,
+#                 weight="bold",  # Bold text for loaded nodes
+#             )
+#         else:  # Normal node
+#             ax.scatter(x, y, z, color="black", s=10)
+#             ax.text(
+#                 x + text_offset,
+#                 y + text_offset,
+#                 z + text_offset,
+#                 str(i + 1),
+#                 color="black",  # Normal black text
+#                 fontsize=7,
+#             )
 
-    # Calculate axis limits based on the node locations
-    x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
-    y_min, y_max = np.min(nodes[:, 1]), np.max(nodes[:, 1])
-    z_min, z_max = np.min(nodes[:, 2]), np.max(nodes[:, 2])
+#     # Calculate axis limits based on the node locations
+#     x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
+#     y_min, y_max = np.min(nodes[:, 1]), np.max(nodes[:, 1])
+#     z_min, z_max = np.min(nodes[:, 2]), np.max(nodes[:, 2])
 
-    # Set axis limits with a minimum of -1 and 1
-    ax.set_xlim([min(x_min - 1, -1), max(x_max + 1, 1)])
-    ax.set_ylim([min(y_min - 1, -1), max(y_max + 1, 1)])
-    ax.set_zlim([min(z_min - 1, -1), max(z_max + 1, 1)])
+#     # Set axis limits with a minimum of -1 and 1
+#     ax.set_xlim([min(x_min - 1, -1), max(x_max + 1, 1)])
+#     ax.set_ylim([min(y_min - 1, -1), max(y_max + 1, 1)])
+#     ax.set_zlim([min(z_min - 1, -1), max(z_max + 1, 1)])
 
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
+#     ax.set_xlabel("X")
+#     ax.set_ylabel("Y")
+#     ax.set_zlabel("Z")
 
-    plt.show()
+#     plt.show()
 
 
-def plot_network_animated(ax, nodes, elements, fixed_nodes, iteration):
+def plot_network_animated(
+    ax, nodes, elements, fixed_nodes, iteration, plot_text
+):
     ax.cla()  # Clear the axes
 
     text_offset = 0.05  # Offset for labels to avoid overlap
@@ -249,40 +260,42 @@ def plot_network_animated(ax, nodes, elements, fixed_nodes, iteration):
             linewidth=1,
         )
 
-        # Compute midpoint for element numbering
-        mid_x = (x_start + x_end) / 2
-        mid_y = (y_start + y_end) / 2
-        mid_z = (z_start + z_end) / 2
-        ax.text(
-            mid_x + text_offset,
-            mid_y + text_offset,
-            mid_z + text_offset,
-            str(i + 1),
-            color="green",
-            fontsize=7,
-        )  # Element number
+        if plot_text:
+            # Compute midpoint for element numbering
+            mid_x = (x_start + x_end) / 2
+            mid_y = (y_start + y_end) / 2
+            mid_z = (z_start + z_end) / 2
+            ax.text(
+                mid_x + text_offset,
+                mid_y + text_offset,
+                mid_z + text_offset,
+                str(i + 1),
+                color="green",
+                fontsize=7,
+            )  # Element number
 
-    # Plot node numbers
-    for i, (x, y, z) in enumerate(nodes):
-        if fixed_nodes[i] == 1:  # Fixed node
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="blue",  # Blue text for fixed nodes
-                fontsize=7,
-                weight="bold",  # Bold text for fixed nodes
-            )
-        else:  # Normal node
-            ax.text(
-                x + text_offset,
-                y + text_offset,
-                z + text_offset,
-                str(i + 1),
-                color="black",  # Normal black text
-                fontsize=7,
-            )
+    if plot_text:
+        # Plot node numbers
+        for i, (x, y, z) in enumerate(nodes):
+            if fixed_nodes[i] == 1:  # Fixed node
+                ax.text(
+                    x + text_offset,
+                    y + text_offset,
+                    z + text_offset,
+                    str(i + 1),
+                    color="blue",  # Blue text for fixed nodes
+                    fontsize=7,
+                    weight="bold",  # Bold text for fixed nodes
+                )
+            else:  # Normal node
+                ax.text(
+                    x + text_offset,
+                    y + text_offset,
+                    z + text_offset,
+                    str(i + 1),
+                    color="black",  # Normal black text
+                    fontsize=7,
+                )
 
     # Calculate axis limits based on the node locations
     x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
@@ -304,10 +317,12 @@ def plot_network_animated(ax, nodes, elements, fixed_nodes, iteration):
     ax.legend()
 
 
-def plot_animation(node_positions, e, n_f, t):
+def plot_animation(node_positions, e, n_f, t=1, plot_text=False):
     # Animation update function
     def update(frame):
-        plot_network_animated(ax, node_positions[frame], e, n_f, frame)
+        plot_network_animated(
+            ax, node_positions[frame], e, n_f, frame, plot_text
+        )
 
     # Create the animation
     fig = plt.figure()
@@ -326,6 +341,8 @@ def plot_kinetic_energy(KE, solver):
         # Create a figure with 1 row and 2 columns
         fig, axes = plt.subplots(1, 2, figsize=(16, 5))
 
+        offset = int(np.rint(0.1 * len(KE)))
+
         # Plot the full time series
         axes[0].plot(KE, label="Kinetic Energy", color="b")
         axes[0].set_xlabel("Iteration")
@@ -337,11 +354,16 @@ def plot_kinetic_energy(KE, solver):
 
         # Plot the time series without the first 5 iterations
         axes[1].plot(
-            range(5, len(KE)), KE[5:], label="Kinetic Energy", color="r"
+            range(offset, len(KE)),
+            KE[offset:],
+            label="Kinetic Energy",
+            color="r",
         )
         axes[1].set_xlabel("Iteration")
         axes[1].set_ylabel("Kinetic Energy")
-        axes[1].set_title("Kinetic Energy vs. Iteration (After 5 Iterations)")
+        axes[1].set_title(
+            "Kinetic Energy vs. Iteration (After 10% of Iterations)"
+        )
         axes[1].legend()
         axes[1].grid(True)
         # axes[1].xaxis.set_major_locator(MaxNLocator(integer=True))

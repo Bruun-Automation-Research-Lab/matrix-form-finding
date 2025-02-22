@@ -5,14 +5,14 @@ import helper_solver as hs
 import helper_matrix as hm
 import helper_plot as hp
 
-from structures.struct_3 import generate_struct
+from structures.struct_4 import generate_struct
 
 
 class FormFinder:
     def __init__(self, solver="FD_fixed", debug=False):
         self.solver = solver
         self.debug = debug
-        hl.setup_logging(debug)
+        hl.setup_logging(debug, "debug_log_FF.txt")
 
         # Initialize structure, turn dicts --> arrays
         self.n, self.e, self.e_l, self.n_l, self.n_f = (
@@ -50,7 +50,7 @@ class FormFinder:
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
-        self.h = 0.1
+        self.h = 1.0
         self.gamma = 1.0
         self.v_x = np.zeros_like(self.p_x)
         self.v_y = np.zeros_like(self.p_y)
@@ -64,7 +64,7 @@ class FormFinder:
     def solve(self):
         """Main loop for structural simulation."""
         TOL = 1e-4
-        MAX_ITER = 10000
+        MAX_ITER = 2000
 
         for iteration in range(MAX_ITER):
             hl.debug_iteration(iteration, self.solver)
@@ -232,8 +232,9 @@ class FormFinder:
         K_total = K_g + K_e
 
         K = self.C.T @ K_total @ self.C
+
         # Kronecker delta as an identity matrix
-        # This seems to destabilize when doing leapfrog integration
+        # Seems to destabilize sometimes when doing leapfrog
         # delta = np.eye(K.shape[0])
         # K = K * delta
 
@@ -252,13 +253,18 @@ class FormFinder:
             *hm.partition_nodes_coordinates(self.n, self.n_f),
         )
 
+        # For use in energy peak
+        d_x_save = np.copy(self.d_x)
+        d_y_save = np.copy(self.d_y)
+        d_z_save = np.copy(self.d_z)
+
         # M = h^2/2 * K, V1 = V0 + h/M * f (normal)
         # M = h^2/2 * K, V1 = h/2*M * f (first iteration)
         if self.first:
             self.v_x = self.gamma * self.h * (1 / self.h**2) * self.d_x
             self.v_y = self.gamma * self.h * (1 / self.h**2) * self.d_y
             self.v_z = self.gamma * self.h * (1 / self.h**2) * self.d_z
-            self.first = True
+            self.first = False
         else:
             self.v_x += self.gamma * self.h * (2 / self.h**2) * self.d_x
             self.v_y += self.gamma * self.h * (2 / self.h**2) * self.d_y
@@ -274,6 +280,49 @@ class FormFinder:
         hl.debug_deltas(self.d_x, self.d_y, self.d_z)
         hl.debug_table([self.KE_prev2, self.KE_prev, KE])
 
+        # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
+        if self.KE_prev2 < self.KE_prev > KE:
+
+            q1 = (self.KE_prev - KE) / (
+                (self.KE_prev - KE) - (self.KE_prev2 - self.KE_prev)
+            )
+
+            # # this is same interp, different interval than the paper
+            # q2, KE_q, x_interp, y_interp = hs.quadratic_interp(
+            #     [KE_prev2, KE_prev, KE]
+            # )
+            # hp.plot_quadratic_interp(
+            #     [0, 0.5, 1.0],
+            #     [KE_prev2, KE_prev, KE],
+            #     x_interp,
+            #     y_interp,
+            #     q1,
+            #     q2,
+            #     KE_q,
+            #     t=iteration,
+            # )
+
+            q = q1
+            hl.debug_energy_peak(q1)
+
+            self.d_x -= (
+                self.h * (1 + q) * self.gamma * self.v_x
+                + self.gamma * (q) * d_x_save
+            )
+            self.d_y -= (
+                self.h * (1 + q) * self.gamma * self.v_y
+                + self.gamma * (q) * d_y_save
+            )
+            self.d_z -= (
+                self.h * (1 + q) * self.gamma * self.v_z
+                + self.gamma * (q) * d_z_save
+            )
+
+            hl.debug_deltas(self.d_x, self.d_y, self.d_z)
+
+            # Reset velocities to 0 (kinetic damping)
+            self.first = True
+
         self.KE_prev2 = self.KE_prev
         self.KE_prev = KE
         self.KE_history.append(KE)
@@ -284,8 +333,12 @@ class FormFinder:
     def post_process(self):
         """Final visualization and debugging."""
         hp.plot_kinetic_energy(self.KE_history, self.solver)
-        hp.plot_animation(self.node_pos_hist, self.e, self.n_f, t=1)
-        hp.plot_network_views(self.n, self.e, self.n_l, self.n_f)
+        hp.plot_animation(
+            self.node_pos_hist, self.e, self.n_f, t=1, plot_text=False
+        )
+        hp.plot_network_views(
+            self.n, self.e, self.n_l, self.n_f, plot_text=False
+        )
         hl.debug_final(
             self.n,
             self.L,
@@ -295,6 +348,8 @@ class FormFinder:
 
 
 if __name__ == "__main__":
+    # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
     simulation = FormFinder(solver="DR_imp", debug=True)
+    # simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()

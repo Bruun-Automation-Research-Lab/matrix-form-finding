@@ -3,12 +3,12 @@ import numpy as np
 
 
 # Set up log
-def setup_logging(debug=False):
+def setup_logging(debug=False, filename="debug_log.txt"):
     log.getLogger("matplotlib").setLevel(log.WARNING)
 
     if debug:
         log.basicConfig(
-            filename="./debug_log.txt",
+            filename=f"./debug/{filename}",
             level=log.DEBUG,
             format="%(message)s",
             filemode="w",
@@ -63,15 +63,17 @@ def debug_force_and_density(F, Q):
 
 def debug_stiffness(K_g, K_e, K, K_mod=None):
 
-    if K_mod is None:
-        K_mod = K  # Assign default value inside the function
-
     log.debug("")
     log.debug("#-------------------------")
     log.debug("\nElement K_g, diag:\n %s", np.diag(K_g))
     log.debug("\nElement K_e, diag:\n %s", np.diag(K_e))
     log.debug("\nK (free nodes):\n %s", K)
-    log.debug("\nK (free nodes), diag:\n %s", np.diag(K_mod))
+
+    if K_mod is None:
+        log.debug("\nK (free nodes), diag:\n %s", np.diag(K))
+    else:
+        log.debug("\nK_mod (free nodes), diag:\n %s", np.diag(K_mod))
+        log.debug("\nK (free nodes), diag:\n %s", np.diag(K_mod))
 
 
 def debug_stiffness_FD(K, D, D_f):
