@@ -1,6 +1,6 @@
 import numpy as np
 
-from structures.struct_3 import generate_struct
+from structures.struct_4 import generate_struct
 
 from helper_matrix import (
     nodes_delta,
@@ -16,6 +16,7 @@ from helper_matrix import (
     partition_nodes_coordinates,
 )
 from helper_plot import (
+    plot_network_views,
     plot_network3D,
     plot_animation,
     plot_kinetic_energy,
@@ -74,7 +75,7 @@ def main(debug=False, solver="FD_fixed"):
     )
 
     # Plot network
-    plot_network3D(n, e, n_l, n_f)
+    plot_network_views(n, e, n_l, n_f)
 
     # Calculate initial element lengths
     l_vec, L = create_length_matrix(n, e)
@@ -103,7 +104,7 @@ def main(debug=False, solver="FD_fixed"):
     A = np.eye(len(e))
 
     # DR variables
-    h = 0.1
+    h = 0.5
     v_x = 0
     v_y = 0
     v_z = 0
@@ -128,6 +129,7 @@ def main(debug=False, solver="FD_fixed"):
         if solver == "FD_fixed":
             F = L
             Q = FD_factor * F @ np.linalg.inv(L)
+            # Q = np.diag(Q @ e_l.flatten()) # A way to apply pre-load
             debug_force_and_density(F, Q)
 
             # Stiffness matrix
@@ -178,13 +180,14 @@ def main(debug=False, solver="FD_fixed"):
             K_total = K_g + K_e
 
             # Free Nodes stiffness matrices
-            # This is same as if you assembled each element at each node
+            # This is same as if you summed each element at each node
             K = C.T @ K_total @ C
 
             # Kronecker delta as an identity matrix
-            delta = np.eye(K.shape[0])
-
-            K_mod = K * delta
+            # This seems to destabilize when doing leapfrog integration
+            # delta = np.eye(K.shape[0])
+            # K_mod = K * delta
+            K_mod = K
 
             debug_stiffness(K_g, K_e, K, K_mod)
 
@@ -203,7 +206,7 @@ def main(debug=False, solver="FD_fixed"):
                 v_x = gamma * h * (1 / h**2) * x
                 v_y = gamma * h * (1 / h**2) * y
                 v_z = gamma * h * (1 / h**2) * z
-                first = True
+                first = False
             else:
                 # This is V,t-1 + v,t
                 v_x += gamma * h * (2 / h**2) * x
@@ -220,13 +223,17 @@ def main(debug=False, solver="FD_fixed"):
             debug_deltas(d_x, d_y, d_z)
             debug_table([KE_prev2, KE_prev, KE])
 
+            check_KE = True
+
             # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
-            if KE_prev2 < KE_prev > KE:
+            if KE_prev2 < KE_prev > KE and check_KE:
 
                 q1 = (KE_prev - KE) / ((KE_prev - KE) - (KE_prev2 - KE_prev))
-                q2, KE_q, x_interp, y_interp = quadratic_interp(
-                    [KE_prev2, KE_prev, KE]
-                )
+
+                # # this is same interp, different interval than the paper
+                # q2, KE_q, x_interp, y_interp = quadratic_interp(
+                #     [KE_prev2, KE_prev, KE]
+                # )
                 # plot_quadratic_interp(
                 #     [0, 0.5, 1.0],
                 #     [KE_prev2, KE_prev, KE],
@@ -251,6 +258,9 @@ def main(debug=False, solver="FD_fixed"):
 
                 # _ = debug_table(q1, KE_q, [KE_prev2, KE_prev, KE])
                 # KE = np.copy(KE_q)
+
+            KE_prev2 = np.copy(KE_prev)
+            KE_prev = np.copy(KE)
 
             KE_history.append(KE)
 
@@ -293,10 +303,12 @@ def main(debug=False, solver="FD_fixed"):
 
     plot_animation(node_positions, e, n_f, t=1)
 
-    plot_network3D(n, e, n_l, n_f)
+    plot_network_views(n, e, n_l, n_f)
 
 
 if __name__ == "__main__":
     # main(debug=True, solver="FD_fixed")
     # main(debug=True, solver="FD_iter")
     main(debug=True, solver="DR")
+
+# DR with no preload is basically FD_fixed with Q = 1

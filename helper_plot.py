@@ -4,6 +4,128 @@ import matplotlib.animation as animation
 from mpl_toolkits.mplot3d import Axes3D
 
 
+def plot_network_views(nodes, elements, nodes_loads, nodes_fixed):
+    """
+    Create a four-view plot: one large 3D view and 3 small 2D projections.
+    """
+    fig = plt.figure(figsize=(12, 6))
+    gs = fig.add_gridspec(3, 2, width_ratios=[2, 1], height_ratios=[3, 1, 1])
+
+    text_offset = 0.07  # Adjust this value if necessary
+
+    # 3D plot
+    ax = fig.add_subplot(gs[:, 0], projection="3d")
+
+    text_offset = 0.07  # Adjust this value if necessary
+
+    # Plot elements with numbers
+    for i, (n1, n2) in enumerate(
+        elements - 1
+    ):  # Convert 1-based to 0-based indexing
+        x_vals = [nodes[n1, 0], nodes[n2, 0]]
+        y_vals = [nodes[n1, 1], nodes[n2, 1]]
+        z_vals = [nodes[n1, 2], nodes[n2, 2]]
+        ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.8)
+
+        # Compute midpoint for element numbering
+        mid_x = (nodes[n1, 0] + nodes[n2, 0]) / 2
+        mid_y = (nodes[n1, 1] + nodes[n2, 1]) / 2
+        mid_z = (nodes[n1, 2] + nodes[n2, 2]) / 2
+        ax.text(
+            mid_x + text_offset,
+            mid_y + text_offset,
+            mid_z + text_offset,
+            str(i + 1),
+            color="green",
+            fontsize=7,
+        )  # Offset element number slightly
+
+    # Plot nodes with numbers
+    for i, (x, y, z) in enumerate(nodes):
+        if nodes_fixed[i]:  # Fixed node
+            ax.scatter(x, y, z, color="blue", s=20)
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="blue",  # Blue text for fixed nodes
+                fontsize=7,
+                weight="bold",  # Bold text for fixed nodes
+            )
+        elif np.any(nodes_loads[i] != 0):  # Loaded node
+            ax.scatter(x, y, z, color="red", s=30)
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="red",  # Red text for loaded nodes
+                fontsize=7,
+                weight="bold",  # Bold text for loaded nodes
+            )
+        else:  # Normal node
+            ax.scatter(x, y, z, color="black", s=10)
+            ax.text(
+                x + text_offset,
+                y + text_offset,
+                z + text_offset,
+                str(i + 1),
+                color="black",  # Normal black text
+                fontsize=7,
+            )
+
+    # Calculate axis limits based on the node locations
+    x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
+    y_min, y_max = np.min(nodes[:, 1]), np.max(nodes[:, 1])
+    z_min, z_max = np.min(nodes[:, 2]), np.max(nodes[:, 2])
+
+    # Set axis limits with a minimum of -1 and 1
+    ax.set_xlim([min(x_min - 1, -1), max(x_max + 1, 1)])
+    ax.set_ylim([min(y_min - 1, -1), max(y_max + 1, 1)])
+    ax.set_zlim([min(z_min - 1, -1), max(z_max + 1, 1)])
+
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+
+    # XY-plane
+    ax_xy = fig.add_subplot(gs[0, 1])
+    for n1, n2 in elements:
+        x_vals = [nodes[n1 - 1][0], nodes[n2 - 1][0]]  # Adjust for 1-indexing
+        y_vals = [nodes[n1 - 1][1], nodes[n2 - 1][1]]  # Adjust for 1-indexing
+        ax_xy.plot(x_vals, y_vals, "k-")
+    ax_xy.set_xlabel("X")
+    ax_xy.set_ylabel("Y")
+    ax_xy.set_title("XY Plane")
+    ax_xy.set_aspect("equal")
+
+    # XZ-plane
+    ax_xz = fig.add_subplot(gs[1, 1])
+    for n1, n2 in elements:
+        x_vals = [nodes[n1 - 1][0], nodes[n2 - 1][0]]  # Adjust for 1-indexing
+        z_vals = [nodes[n1 - 1][2], nodes[n2 - 1][2]]  # Adjust for 1-indexing
+        ax_xz.plot(x_vals, z_vals, "k-")
+    ax_xz.set_xlabel("X")
+    ax_xz.set_ylabel("Z")
+    ax_xz.set_title("XZ Plane")
+    ax_xz.set_aspect("equal")
+
+    # YZ-plane
+    ax_yz = fig.add_subplot(gs[2, 1])
+    for n1, n2 in elements:
+        y_vals = [nodes[n1 - 1][1], nodes[n2 - 1][1]]  # Adjust for 1-indexing
+        z_vals = [nodes[n1 - 1][2], nodes[n2 - 1][2]]  # Adjust for 1-indexing
+        ax_yz.plot(y_vals, z_vals, "k-")
+    ax_yz.set_xlabel("Y")
+    ax_yz.set_ylabel("Z")
+    ax_yz.set_title("YZ Plane")
+    ax_yz.set_aspect("equal")
+
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_network3D(nodes, elements, nodes_loads, nodes_fixed):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
@@ -284,7 +406,7 @@ def plot_quadratic_interp(x, y, x_interp, y_interp, q1, q2, KE_q, t=0):
         f"({q2:.3f}, {KE_q:.3e})",
         fontsize=8,
         ha="center",
-        color="blue",
+        color="black",
     )
     plt.text(
         q2,

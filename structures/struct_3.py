@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def generate_struct(N=5, spacing=2.0, ratio_outer_to_inner=20):
+def generate_struct(N=5, spacing=2.5, ratio_outer_to_inner=1):
     nodes = {}
     elements = {}
     elements_preload = {}
