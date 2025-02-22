@@ -1,6 +1,38 @@
 import numpy as np
 
 
+def nodes_delta(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
+    # Compute the right-hand side vector (p - D * x - D_f * x_f)
+    rhs_x = p_x - D @ x - D_f @ x_f
+    rhs_y = p_y - D @ y - D_f @ y_f
+    rhs_z = p_z - D @ z - D_f @ z_f
+
+    # Compute the inverse of D
+    K_inv = np.linalg.inv(K)
+
+    # Solve for the displacements (delta)
+    delta_x = K_inv @ rhs_x
+    delta_y = K_inv @ rhs_y
+    delta_z = K_inv @ rhs_z
+
+    return delta_x, delta_y, delta_z
+
+
+def nodes_update(nodes, d_x, d_y, d_z, n_f):
+    # Flatten the free_node_mask to match the shape of n_f
+    free_node_mask = n_f.flatten() == 0
+
+    # Create a copy of the original nodes array to avoid in-place modification
+    updated_nodes = np.copy(nodes)
+
+    # Apply displacement to free nodes
+    updated_nodes[free_node_mask, 0] += d_x.flatten()  # Update x-coordinates
+    updated_nodes[free_node_mask, 1] += d_y.flatten()  # Update y-coordinates
+    updated_nodes[free_node_mask, 2] += d_z.flatten()  # Update z-coordinates
+
+    return updated_nodes
+
+
 def generate_struct_arrays(
     nodes, elements, elements_preload, nodes_load, nodes_fixed
 ):
@@ -166,6 +198,8 @@ def create_elastic_stiffness_matrix(E, A, L_0):
 def create_nodal_stiffness_matrix(E, A, L_0, F, L, elements, num_nodes):
     """
     Create K = Ke + Kg = (EA/L_0) + (F/L) for each node.
+
+    This is not currently used, but used to check C.T x K x C is same
 
     Parameters (each element):
     E        : np.ndarray (diagonal square matrix) - Young's modulus

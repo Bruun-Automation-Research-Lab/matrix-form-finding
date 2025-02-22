@@ -129,7 +129,7 @@ def debug_final(n_new, L_new, F, Q):
     )
 
 
-def debug_table2(r1):
+def debug_table(r1):
     """
     This function generates a debug table
 
@@ -153,40 +153,3 @@ def debug_table2(r1):
     """
 
     log.debug("\n%s", table)
-
-
-def debug_table(y_star, E_star, energy_values):
-    """
-    This function generates a debug table
-
-    Args:
-    - y_star (float): The value of t* (time).
-    - E_star (float): The energy at t* (E(t*)).
-    - energy_values (list of floats): List containing the other energy values.
-    """
-
-    # Ensure energy_values has exactly 3 points
-    if len(energy_values) != 3:
-        raise ValueError("energy_values should contain exactly 3 points.")
-
-    # Build the time array based on the value of y_star
-    if 0 <= y_star < 0.5:
-        r1 = [0.0, y_star, 0.5, 1.0]
-        r2 = [energy_values[0], E_star, energy_values[1], energy_values[2]]
-        before = True
-    elif 0.5 <= y_star <= 1.0:
-        r1 = [0.0, 0.5, y_star, 1.0]
-        r2 = [energy_values[0], energy_values[1], E_star, energy_values[2]]
-        before = False
-
-    # Prepare the ASCII table with reordered columns
-    table = f"""
-    +----+------------+-----------+-----------+------------+
-    | t  | {r1[0]:.3f}      | {r1[1]:.3f}     | {r1[2]:.3f}     | {r1[3]:.3f}
-    +----+------------+-----------+-----------+------------+
-    | E  | {r2[0]:.3e} | {r2[1]:.3e} | {r2[2]:.3e} | {r2[3]:.3e}
-    +----+------------+-----------+-----------+------------+
-    """
-
-    log.debug("\n%s", table)
-    return before

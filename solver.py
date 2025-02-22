@@ -1,15 +1,16 @@
 import numpy as np
 
-from structures.struct_4 import generate_struct
+from structures.struct_3 import generate_struct
 
 from helper_matrix import (
+    nodes_delta,
+    nodes_update,
     generate_struct_arrays,
     create_connectivity_matrix,
     create_length_matrix,
     create_node_force_vectors,
     create_elastic_stiffness_matrix,
     compute_kinetic_energy,
-    create_nodal_stiffness_matrix,
     create_force_matrix,
     partition_connectivity_matrix,
     partition_nodes_coordinates,
@@ -32,78 +33,9 @@ from helper_log import (
     debug_velocity_kinetic_energy,
     debug_energy_peak,
     debug_table,
-    debug_table2,
     debug_error,
     debug_final,
 )
-
-
-def nodes_delta(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
-    # Compute the right-hand side vector (p - D * x - D_f * x_f)
-    rhs_x = p_x - D @ x - D_f @ x_f
-    rhs_y = p_y - D @ y - D_f @ y_f
-    rhs_z = p_z - D @ z - D_f @ z_f
-
-    # Compute the inverse of D
-    K_inv = np.linalg.inv(K)
-
-    # Solve for the displacements (delta)
-    delta_x = K_inv @ rhs_x
-    delta_y = K_inv @ rhs_y
-    delta_z = K_inv @ rhs_z
-
-    return delta_x, delta_y, delta_z
-
-
-def nodes_update(nodes, d_x, d_y, d_z, n_f):
-    # Flatten the free_node_mask to match the shape of n_f
-    free_node_mask = n_f.flatten() == 0
-
-    # Create a copy of the original nodes array to avoid in-place modification
-    updated_nodes = np.copy(nodes)
-
-    # Apply displacement to free nodes
-    updated_nodes[free_node_mask, 0] += d_x.flatten()  # Update x-coordinates
-    updated_nodes[free_node_mask, 1] += d_y.flatten()  # Update y-coordinates
-    updated_nodes[free_node_mask, 2] += d_z.flatten()  # Update z-coordinates
-
-    return updated_nodes
-
-
-def generate_s(elements, N, ratio_outer_to_inner=1):
-    """
-    Generate the s array where elements on the boundary have a value based on
-    the specified ratio and interior elements have another value.
-
-    Parameters:
-    - elements: List of elements (indices of grid elements)
-    - N: Size of the NxN grid
-    - ratio_outer_to_inner: Ratio of the value on the boundary to the inside
-
-    Returns:
-    - s: Array with values based on the ratio for boundary and inside
-    """
-    # Initialize s with values of 1
-    s = np.ones(len(elements))
-
-    # Find the nodes on the boundary
-    boundary_nodes = set()
-    for i in range(N):
-        for j in range(N):
-            if i == 0 or j == 0 or i == N - 1 or j == N - 1:
-                # Boundary node indices
-                boundary_nodes.add(i * N + j)
-
-    # Adjust the values in s based on the boundary and interior
-    for idx, element in enumerate(elements):
-        if element[0] in boundary_nodes or element[1] in boundary_nodes:
-            # Boundary element (set the value based on the ratio)
-            s[idx] = ratio_outer_to_inner
-        else:
-            # Interior element (keep the default value of 1)
-            s[idx] = 1
-
-    return s
 
 
 def quadratic_interp(y_points, num_points=100):
@@ -169,6 +101,8 @@ def main(debug=False, solver="FD_fixed"):
     F_0 = np.diag(np.copy(e_l).flatten())
     E = np.eye(len(e))
     A = np.eye(len(e))
+
+    # DR variables
     h = 0.1
     v_x = 0
     v_y = 0
@@ -244,6 +178,7 @@ def main(debug=False, solver="FD_fixed"):
             K_total = K_g + K_e
 
             # Free Nodes stiffness matrices
+            # This is same as if you assembled each element at each node
             K = C.T @ K_total @ C
 
             # Kronecker delta as an identity matrix
@@ -252,12 +187,6 @@ def main(debug=False, solver="FD_fixed"):
             K_mod = K * delta
 
             debug_stiffness(K_g, K_e, K, K_mod)
-
-            # Check that the nodal, is same as the element (C*K*C) way
-            # K = compute_nodal_stiffness_force(E, A, L_0, F, L, e, len(n))
-            # K_free = K[n_f.flatten() == 0]
-            # K_mod = np.diag(K_free)
-            # logging.debug("\nStiffnes (MOD2):\n %s", K_mod)
 
             D = C.T @ Q @ C
             D_f = C.T @ Q @ C_f
@@ -289,9 +218,7 @@ def main(debug=False, solver="FD_fixed"):
 
             debug_velocity_kinetic_energy(v_x, v_y, v_z, KE)
             debug_deltas(d_x, d_y, d_z)
-            debug_table2([KE_prev2, KE_prev, KE])
-
-            before = False
+            debug_table([KE_prev2, KE_prev, KE])
 
             # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
             if KE_prev2 < KE_prev > KE:
@@ -326,14 +253,6 @@ def main(debug=False, solver="FD_fixed"):
                 # KE = np.copy(KE_q)
 
             KE_history.append(KE)
-
-            # Shift kinetic energy values for next iteration
-            if before:
-                KE_prev2 = KE_prev2
-                KE_prev = KE
-            else:
-                KE_prev2 = KE_prev
-                KE_prev = KE
 
         # Update nodes
         n_new = nodes_update(n, d_x, d_y, d_z, n_f)
