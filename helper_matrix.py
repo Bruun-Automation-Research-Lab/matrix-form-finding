@@ -134,6 +134,27 @@ def create_length_matrix(nodes, elements):
     return l_vec, L_mat
 
 
+def create_length_matrix2(n, C):
+    """
+    Calculate element lengths
+    Veenendaal and Block, 2012, implementation
+    """
+
+    # member coordinate diffs, [m x 3]
+    U = C @ n
+
+    # member coordinate diffs in x,y,z
+    U_bar = np.diag(U[:, 0])
+    V_bar = np.diag(U[:, 1])
+    W_bar = np.diag(U[:, 2])
+
+    L = np.sqrt(U_bar**2 + V_bar**2 + W_bar**2)
+
+    L_vec = np.diag(L).reshape(-1, 1)
+
+    return L_vec, L
+
+
 def create_elastic_stiffness_matrix(E, A, L_0):
     """
     Calculate the elastic stiffness matrix K_e for each element.
