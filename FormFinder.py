@@ -5,7 +5,7 @@ import helper_solver as hs
 import helper_matrix as hm
 import helper_plot as hp
 
-from structures.struct_2 import generate_struct
+from structures.struct_5 import generate_struct
 
 
 class FormFinder:
@@ -20,6 +20,10 @@ class FormFinder:
         )
 
         hl.debug_struct_input(self.n, self.e, self.e_l, self.n_l, self.n_f)
+
+        hp.plot_network_views(
+            self.n, self.e, self.n_l, self.n_f, plot_text=True
+        )
 
         self.initialize()
 
@@ -145,6 +149,7 @@ class FormFinder:
         )
 
         hl.debug_deltas(self.d_x, self.d_y, self.d_z)
+        self.KE_history = [0]  # dont use in FD
 
     def fd_iter_solver(self):
         """Force Density (FD) solver with fixed F."""
@@ -174,9 +179,7 @@ class FormFinder:
         )
 
         hl.debug_deltas(self.d_x, self.d_y, self.d_z)
-
-        self.F_hist.append(F)
-        self.Q_hist.append(Q)
+        self.KE_history = [0]  # dont use in FD
 
     def dr_implicit_solver(self):
         """Dynamic Relaxation (DR) solver."""
@@ -358,10 +361,10 @@ class FormFinder:
         """Final visualization and debugging."""
         hp.plot_kinetic_energy(self.KE_history, self.solver)
         hp.plot_animation(
-            self.node_pos_hist, self.e, self.n_f, t=1, plot_text=False
+            self.node_pos_hist, self.e, self.n_f, t=1, plot_text=True
         )
         hp.plot_network_views(
-            self.n, self.e, self.n_l, self.n_f, plot_text=False
+            self.n, self.e, self.n_l, self.n_f, plot_text=True
         )
         hl.debug_final(
             self.n,

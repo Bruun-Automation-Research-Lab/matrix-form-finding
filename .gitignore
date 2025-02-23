@@ -6,7 +6,7 @@
 *.rhl
 *.stlbak
 .DS_Store
-robotstudio/GT_Gantry/Virtual Controllers
+debug/*
 
 # ======================
 # Python Bytecode Files
