@@ -32,9 +32,8 @@ class FormFinder:
 
         self.C_total = hm.create_connectivity_matrix(self.n, self.e)
 
-        # self.L_vec, self.L = hm.create_length_matrix(self.n, self.e)
-
-        self.L_vec, self.L = hm.create_length_matrix2(self.n, self.C_total)
+        self.U = hm.create_coordinate_diff_matrix(self.n, self.C_total)
+        self.L_vec, self.L = hm.create_length_matrix(self.U)
 
         self.C_i, self.C_f = hm.partition_connectivity_matrix(
             self.C_total, self.n_f
@@ -102,9 +101,9 @@ class FormFinder:
                 self.node_pos_hist.append(self.n.copy())
 
                 # Check for convergence
-                self.L_vec, self.L = hm.create_length_matrix2(
-                    self.n, self.C_total
-                )
+                self.U = hm.create_coordinate_diff_matrix(self.n, self.C_total)
+                self.L_vec, self.L = hm.create_length_matrix(self.U)
+
                 self.L_total_hist.append(np.sum(self.L_vec**2))
                 error = np.abs(self.L_total_hist[-2] - self.L_total_hist[-1])
 
@@ -386,6 +385,6 @@ class FormFinder:
 if __name__ == "__main__":
     # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
-    simulation = FormFinder(solver="DR_imp", debug=True)
-    # simulation = FormFinder(solver="DR_leap", debug=True)
+    # simulation = FormFinder(solver="DR_imp", debug=True)
+    simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()
