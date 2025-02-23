@@ -6,7 +6,7 @@
 *.rhl
 *.stlbak
 .DS_Store
-debug/*
+debug/*.txt
 
 # ======================
 # Python Bytecode Files

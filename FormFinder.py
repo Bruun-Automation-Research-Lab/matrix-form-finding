@@ -30,17 +30,22 @@ class FormFinder:
     def initialize(self):
         """Initialize structural matrices and parameters."""
 
-        self.L_vec, self.L = hm.create_length_matrix(self.n, self.e)
+        self.C_total = hm.create_connectivity_matrix(self.n, self.e)
 
-        C_total = hm.create_connectivity_matrix(self.n, self.e)
-        self.C, self.C_f = hm.partition_connectivity_matrix(C_total, self.n_f)
+        # self.L_vec, self.L = hm.create_length_matrix(self.n, self.e)
+
+        self.L_vec, self.L = hm.create_length_matrix2(self.n, self.C_total)
+
+        self.C_i, self.C_f = hm.partition_connectivity_matrix(
+            self.C_total, self.n_f
+        )
 
         self.p_x, self.p_y, self.p_z = hm.create_node_force_vectors(
             self.n_l, self.n_f
         )
 
         hl.debug_struct_matrices(
-            C_total, self.C, self.C_f, self.p_x, self.p_y, self.p_z
+            self.C_total, self.C_i, self.C_f, self.p_x, self.p_y, self.p_z
         )
 
         # Recorders
@@ -53,12 +58,12 @@ class FormFinder:
 
         # Dynamic Relaxation parameters
         # self.L_0 = np.copy(self.L)
-        self.L_0 = np.eye(self.L.shape[0])
+        self.L_0 = np.eye(self.L.shape[0])  # for Struct_2, benchmark
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
-        self.E = np.diag(np.zeros(len(self.e)))
-        self.A = np.diag(np.zeros(len(self.e)))
+        # self.E = np.diag(np.zeros(len(self.e)))
+        # self.A = np.diag(np.zeros(len(self.e)))
         self.h = 0.1
         self.gamma = 1.0
         self.v_x = np.zeros_like(self.p_x)
@@ -97,7 +102,9 @@ class FormFinder:
                 self.node_pos_hist.append(self.n.copy())
 
                 # Check for convergence
-                self.L_vec, self.L = hm.create_length_matrix(self.n, self.e)
+                self.L_vec, self.L = hm.create_length_matrix2(
+                    self.n, self.C_total
+                )
                 self.L_total_hist.append(np.sum(self.L_vec**2))
                 error = np.abs(self.L_total_hist[-2] - self.L_total_hist[-1])
 
@@ -127,9 +134,9 @@ class FormFinder:
         """Force Density (FD) solver with fixed Q."""
         Q = np.diag(self.e_l.flatten())
         F = Q @ self.L
-        K = self.C.T @ Q @ self.C
-        D = self.C.T @ Q @ self.C
-        D_f = self.C.T @ Q @ self.C_f
+        K = self.C_i.T @ Q @ self.C_i
+        D = self.C_i.T @ Q @ self.C_i
+        D_f = self.C_i.T @ Q @ self.C_f
 
         self.F_hist.append(F)
         self.Q_hist.append(Q)
@@ -157,9 +164,9 @@ class FormFinder:
         """Force Density (FD) solver with fixed F."""
         F = np.diag(self.e_l.flatten())
         Q = F @ np.linalg.inv(self.L)
-        K = self.C.T @ Q @ self.C
-        D = self.C.T @ Q @ self.C
-        D_f = self.C.T @ Q @ self.C_f
+        K = self.C_i.T @ Q @ self.C_i
+        D = self.C_i.T @ Q @ self.C_i
+        D_f = self.C_i.T @ Q @ self.C_f
 
         self.F_hist.append(F)
         self.Q_hist.append(Q)
@@ -205,7 +212,7 @@ class FormFinder:
         K_e = hm.create_elastic_stiffness_matrix(self.E, self.A, self.L_0)
         K_total = K_g + K_e
 
-        K = self.C.T @ K_total @ self.C
+        K = self.C_i.T @ K_total @ self.C_i
         # Kronecker delta as an identity matrix
         # This seems to destabilize when doing leapfrog integration
         # delta = np.eye(K.shape[0])
@@ -213,8 +220,8 @@ class FormFinder:
 
         hl.debug_stiffness(K_g, K_e, K)
 
-        D = self.C.T @ Q @ self.C
-        D_f = self.C.T @ Q @ self.C_f
+        D = self.C_i.T @ Q @ self.C_i
+        D_f = self.C_i.T @ Q @ self.C_f
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta(
             self.p_x,
@@ -263,7 +270,7 @@ class FormFinder:
         K_e = hm.create_elastic_stiffness_matrix(self.E, self.A, self.L_0)
         K_total = K_g + K_e
 
-        K = self.C.T @ K_total @ self.C
+        K = self.C_i.T @ K_total @ self.C_i
 
         # Kronecker delta as an identity matrix
         # Seems to destabilize sometimes when doing leapfrog
@@ -272,8 +279,8 @@ class FormFinder:
 
         hl.debug_stiffness(K_g, K_e, K)
 
-        D = self.C.T @ Q @ self.C
-        D_f = self.C.T @ Q @ self.C_f
+        D = self.C_i.T @ Q @ self.C_i
+        D_f = self.C_i.T @ Q @ self.C_f
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta(
             self.p_x,
@@ -379,11 +386,6 @@ class FormFinder:
 if __name__ == "__main__":
     # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
-    simulation = FormFinder(solver="DR_imp", debug=True)
-    # simulation = FormFinder(solver="DR_leap", debug=True)
+    # simulation = FormFinder(solver="DR_imp", debug=True)
+    simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()
-
-    # NOTES FOR ME
-    # DR with no preload is basically FD_fixed with Q = 1
-    # DR_leap: turn off energy peak reset for Struct_2 to see oscillation
-    # Peaks in Energy, correspond to where L_total = 0, so start oscillation
