@@ -1,9 +1,9 @@
 import numpy as np
 
-import helper_log as hl
-import helper_solver as hs
-import helper_matrix as hm
-import helper_plot as hp
+import utils.log as hl
+import utils.solver as hs
+import utils.matrix as hm
+import utils.plot as hp
 
 from structures.struct_2 import generate_struct
 

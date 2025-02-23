@@ -10,8 +10,8 @@ from helper_matrix import (
 )
 
 from helper_plot import (
-    plot_network3D,
     plot_animation,
+    plot_network_views,
 )
 
 
@@ -114,10 +114,10 @@ n, e, e_l, n_l, n_f = generate_struct_arrays(
 
 dr = DynamicRelaxation(n, e, n_f, external_forces=n_l)
 
-plot_network3D(n, e, n_l, n_f)
+plot_network_views(n, e, n_l, n_f)
 
 nodes_new = dr.solve()
 
-plot_network3D(dr.nodes, dr.elements, dr.external_forces, dr.fixed)
+plot_network_views(dr.nodes, dr.elements, dr.external_forces, dr.fixed)
 
 plot_animation(dr.frames, e, n_f)

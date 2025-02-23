@@ -2,7 +2,7 @@ import numpy as np
 
 
 def compute_CTKC(C_dim, K_dim):
-    # C_dim should be (m, n) and K_dim should be (n, n) for valid matrix multiplication
+    # C_dim should be (m, n) and K_dim should be (n, n) for valid  mult
     C = np.random.rand(*C_dim)  # C is a matrix of dimensions (m, n)
     K = np.random.rand(*K_dim)  # K is a matrix of dimensions (n, n)
 
