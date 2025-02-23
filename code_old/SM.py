@@ -86,12 +86,41 @@ def assemble_global_stiffness(nodes, E, A, elements):
     return K_global
 
 
+# Define the load vector f
+def create_load_vector(nodes_loads):
+    f = np.zeros(2 * len(nodes_loads))
+    for node, load in nodes_loads.items():
+        f[2 * (node - 1) : 2 * node] = np.array(load)
+    return f
+
+
+# Function to apply boundary conditions and solve for displacements
+def apply_boundary_conditions(K_global, f, nodes_fixed):
+    # Remove the fixed degrees of freedom
+    for node, fixed in nodes_fixed.items():
+        if fixed == 1:
+            # Zero the corresponding row and column for fixed nodes
+            dof = 2 * (node - 1)
+            K_global[dof, :] = 0
+            K_global[:, dof] = 0
+            K_global[dof, dof] = 1  # To avoid singular matrix
+            f[dof] = 0  # No displacement at fixed DOF
+    return K_global, f
+
+
+# Solve the system for displacements
+def solve_displacements(K_global, f):
+    # Solve for displacements
+    u = np.linalg.solve(K_global, f)
+    return u
+
+
 # Example Usage
 # Define nodes with (x, y) coordinates
 nodes = {
     0: (0.0, 0.0),  # Node 1 at (0, 0)
-    1: (1.0, 0.0),  # Node 2 at (1, 0)
-    2: (0.5, 1.0),  # Node 3 at (0.5, 1)
+    1: (2.0, 0.0),  # Node 2 at (1, 0)
+    2: (1.5, 2.0),  # Node 3 at (0.5, 1)
 }
 
 # Define the elements (pairs of connected nodes)
@@ -101,19 +130,34 @@ elements = [
     (2, 0),  # Element 3 connects Node 3 and Node 1
 ]
 
+nodes_loads = {
+    1: (0.0, 0.0),
+    2: (0.0, 0.0),
+    3: (0.0, 0.1),
+}
+
+nodes_fixed = {
+    1: 1,
+    2: 1,
+    3: 0,
+}
+
 # Material and geometry properties
-E = 200e9  # Modulus of elasticity (Pa)
-A = 0.01  # Cross-sectional area (m^2)
+E = 1  # Modulus of elasticity (Pa)
+A = 1  # Cross-sectional area (m^2)
 
 # Assemble the global stiffness matrix
 K_global = assemble_global_stiffness(nodes, E, A, elements)
 print("Global Stiffness Matrix:\n", K_global)
 
+# Define the load vector
+f = create_load_vector(nodes_loads)
 
-# # Example usage
-# C_dim = (3, 3)  # C is of size (3, 3)
-# K_dim = (6, 6)  # K is of size (6, 6)
-# result = compute_CTKC(C_dim, K_dim)
-# print("Result:\n", result)
+# Apply boundary conditions
+K_global, f = apply_boundary_conditions(K_global, f, nodes_fixed)
 
-# import numpy as np
+# Solve for displacements
+displacements = solve_displacements(K_global, f)
+
+# Output the displacement vector
+print("\nDisplacement Vector (u):\n", displacements)

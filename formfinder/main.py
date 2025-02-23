@@ -5,7 +5,7 @@ import utils.solver as hs
 import utils.matrix as hm
 import utils.plot as hp
 
-from structures.struct_2 import generate_struct
+from structures.struct_0 import generate_struct
 
 
 class FormFinder:
@@ -57,7 +57,7 @@ class FormFinder:
 
         # Dynamic Relaxation parameters
         # self.L_0 = np.copy(self.L)
-        self.L_0 = np.eye(self.L.shape[0])  # for Struct_2, benchmark
+        self.L_0 = np.eye(self.L.shape[0])  # for Struct_2, benchmark, DR
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
@@ -86,6 +86,8 @@ class FormFinder:
                 self.fd_fixed_solver()
             elif self.solver == "FD_iter":
                 self.fd_iter_solver()
+            elif self.solver == "SM":
+                self.sm_solver()
             elif self.solver == "DR_imp":
                 self.dr_implicit_solver()
             elif self.solver == "DR_leap":
@@ -175,6 +177,54 @@ class FormFinder:
 
         hl.debug_force_and_density(F, Q)
         hl.debug_stiffness_FD(K, D, D_f)
+
+        self.d_x, self.d_y, self.d_z = hs.nodes_delta(
+            self.p_x,
+            self.p_y,
+            self.p_z,
+            K,
+            D,
+            D_f,
+            *hm.partition_nodes_coordinates(self.n, self.n_f),
+        )
+
+        hl.debug_deltas(self.d_x, self.d_y, self.d_z)
+        self.KE_history = [0]  # dont use in FD
+
+    def sm_solver(self):
+        """Stiffness Matrix (SM) solver."""
+        F = hm.create_force_matrix(
+            self.L,
+            self.L_0,
+            self.E,
+            self.A,
+            self.F_0,
+        )
+        Q = F @ np.linalg.inv(self.L)
+        self.F_hist.append(F)
+        self.Q_hist.append(Q)
+
+        if self.done:
+            return
+
+        hl.debug_force_and_density(F, Q)
+
+        Q_3x, U_3x, L_3x, C_i_3x = hm.create_stacked_matrices(
+            Q, self.U, self.L, self.C_i
+        )
+
+        K_g = hm.create_geometric_stiffnes_SM(Q_3x, U_3x, L_3x)
+        K_e = hm.create_elastic_stiffness_matrix_SM(
+            self.E, self.A, self.L_0, U_3x, L_3x
+        )
+        K_total = K_g + K_e
+
+        K = C_i_3x.T @ K_total @ C_i_3x
+
+        hl.debug_stiffness(K_g, K_e, K)
+
+        D = self.C_i.T @ Q @ self.C_i
+        D_f = self.C_i.T @ Q @ self.C_f
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta(
             self.p_x,
@@ -386,5 +436,5 @@ if __name__ == "__main__":
     # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
     # simulation = FormFinder(solver="DR_imp", debug=True)
-    simulation = FormFinder(solver="DR_leap", debug=True)
+    simulation = FormFinder(solver="SM", debug=True)
     simulation.solve()

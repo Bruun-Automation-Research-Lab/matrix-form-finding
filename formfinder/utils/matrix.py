@@ -1,4 +1,5 @@
 import numpy as np
+import logging as log
 
 
 def generate_struct_arrays(
@@ -69,10 +70,10 @@ def partition_connectivity_matrix(connectivity_matrix, fixed_nodes):
     fixed_node_indices = np.where(fixed_nodes_mask == 1)[0]
 
     # Partition the connectivity matrix into free and fixed node columns
-    C = connectivity_matrix[:, free_node_indices]  # Columns for free nodes
-    Cf = connectivity_matrix[:, fixed_node_indices]  # Columns for fixed nodes
+    C_i = connectivity_matrix[:, free_node_indices]  # Columns for free nodes
+    C_f = connectivity_matrix[:, fixed_node_indices]  # Columns for fixed nodes
 
-    return C, Cf
+    return C_i, C_f
 
 
 def partition_nodes_coordinates(nodes, fixed_nodes):
@@ -167,6 +168,115 @@ def create_elastic_stiffness_matrix(E, A, L_0):
 
     # Convert to diagonal matrix
     K_e = np.diag(k_e)
+
+    return K_e
+
+
+def create_stacked_matrices(Q, U, L, C_i):
+    """
+    Compute the geometric stiffness matrix K_g.
+
+    Parameters:
+    Q : ndarray (m x m)
+        The force-density diagonal matrix.
+    U : ndarray (m x 3)
+        The displacement matrix (m rows of [Ux, Uy, Uz]).
+    L : ndarray (m x m)
+        The length diagonal matrix.
+    """
+
+    # Get dimensions of Q
+    m, n = Q.shape
+
+    # Create a (3m x 3n) block-diagonal matrix by stacking Q along the diagonal
+    Q_stacked = np.zeros((3 * m, 3 * n))
+    for i in range(3):
+        Q_stacked[i * m : (i + 1) * m, i * n : (i + 1) * n] = Q
+
+    # Reshape U into a single column vector and construct a diagonal matrix
+    U_flat = U.reshape(-1, 1)  # Stack x, y, z values in a single column
+    U_diag = np.diag(U_flat.flatten())  # Convert to diagonal matrix
+
+    # L to match U’s structure (for x, y, z), construct a diagonal matrix
+    L_diag = np.diag(L)  # Convert to diagonal matrix
+    L_stacked = np.vstack([L_diag, L_diag, L_diag]).flatten()
+    L_diag_expanded = np.diag(L_stacked)
+
+    C_i_stacked = np.vstack([C_i] * 3)
+
+    return Q_stacked, U_diag, L_diag_expanded, C_i_stacked
+
+
+def create_geometric_stiffnes_SM(Q, U, L):
+    """
+    Compute the geometric stiffness matrix K_g.
+
+    Parameters:
+    Q : ndarray (m x m)
+        The force-density diagonal matrix.
+    U : ndarray (m x 3)
+        The displacement matrix (m rows of [Ux, Uy, Uz]).
+    L : ndarray (m x m)
+        The length diagonal matrix.
+
+    Returns:
+    K_g : ndarray (3m x 3m)
+        The geometric stiffness matrix.
+    """
+
+    # Compute squared and inverse squared matrices
+    U_squared = U @ U  # Equivalent to U^2
+    L_squared = L @ L  # Equivalent to L^2
+    L_squared_inv = np.linalg.inv(L_squared)  # Equivalent to L^-2
+
+    # Compute geometric stiffness components
+    K_base = Q
+    K_correction = U_squared @ L_squared_inv @ Q
+
+    # Compute final geometric stiffness matrix
+    K_g = K_base - K_correction
+
+    # Debug logs
+    log.debug("\nK_g (Base Q_stacked):\n%s", K_base)
+    log.debug("\nK_g (Correction Term):\n%s", K_correction)
+
+    return K_g
+
+
+def create_elastic_stiffness_matrix_SM(E, A, L_0, U, L):
+    """
+    Calculate the elastic stiffness matrix K_e for each element.
+
+    Parameters:
+    E        : np.ndarray (diagonal matrix) - Young's modulus matrix
+    A        : np.ndarray (diagonal matrix) - Cross-sectional area matrix
+    L_0      : np.ndarray (n,) - Initial length of each element
+    elements : np.ndarray (n x 2) - Element connectivity matrix
+    nodes    : np.ndarray (num_nodes x 2) - Node coordinate matrix
+    num_nodes: int - Total number of nodes in the system
+
+    Returns:
+    K_g : np.ndarray (diagonal matrix) - Global stiffness matrix
+    """
+    # Extract diagonal values from matrices E, A
+    E_diag = np.diag(E)
+    A_diag = np.diag(A)
+    L_0_diag = np.diag(L_0)
+
+    # Compute element stiffness values (E*A / L_0 for each element)
+    k_e = (E_diag * A_diag) / L_0_diag
+
+    k_e_stacked = np.vstack([k_e, k_e, k_e]).flatten()
+    k_e_expanded = np.diag(k_e_stacked)
+
+    # Compute squared and inverse squared matrices
+    U_squared = U @ U  # Equivalent to U^2
+    L_squared = L @ L  # Equivalent to L^2
+    L_squared_inv = np.linalg.inv(L_squared)  # Equivalent to L^-2
+
+    K_e = U_squared @ L_squared_inv @ k_e_expanded
+
+    log.debug("\nE*A/L_0 stacked:\n%s", k_e_expanded)
 
     return K_e
 
