@@ -341,7 +341,7 @@ def plot_kinetic_energy(KE, solver):
         # Create a figure with 1 row and 2 columns
         fig, axes = plt.subplots(1, 2, figsize=(16, 5))
 
-        offset = int(np.rint(0.1 * len(KE)))
+        offset = int(np.rint(0.2 * len(KE)))
 
         # Plot the full time series
         axes[0].plot(KE, label="Kinetic Energy", color="b")
@@ -350,7 +350,7 @@ def plot_kinetic_energy(KE, solver):
         axes[0].set_title("Kinetic Energy vs. Iteration (Full Time Series)")
         axes[0].legend()
         axes[0].grid(True)
-        # axes[0].xaxis.set_major_locator(MaxNLocator(integer=True))
+        axes[0].xaxis.set_major_locator(MaxNLocator(integer=True))
 
         # Plot the time series without the first 5 iterations
         axes[1].plot(
@@ -362,11 +362,11 @@ def plot_kinetic_energy(KE, solver):
         axes[1].set_xlabel("Iteration")
         axes[1].set_ylabel("Kinetic Energy")
         axes[1].set_title(
-            "Kinetic Energy vs. Iteration (After 10% of Iterations)"
+            "Kinetic Energy vs. Iteration (After 20% of Iterations)"
         )
         axes[1].legend()
         axes[1].grid(True)
-        # axes[1].xaxis.set_major_locator(MaxNLocator(integer=True))
+        axes[1].xaxis.set_major_locator(MaxNLocator(integer=True))
 
         # Show the plots side by side
         plt.tight_layout()

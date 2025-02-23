@@ -71,9 +71,9 @@ def compute_kinetic_energy(K, v_x, v_y, v_z, h):
     masses = np.diag(K) * h**2 / 2
 
     # Compute kinetic energy for each direction
-    KE_x = 0.5 * np.dot(v_x * masses, v_x)
-    KE_y = 0.5 * np.dot(v_y * masses, v_y)
-    KE_z = 0.5 * np.dot(v_z * masses, v_z)
+    KE_x = 0.5 * np.dot(masses, v_x**2)
+    KE_y = 0.5 * np.dot(masses, v_y**2)
+    KE_z = 0.5 * np.dot(masses, v_z**2)
 
     # Total kinetic energy
     KE = np.sum(KE_x + KE_y + KE_z)

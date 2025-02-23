@@ -5,14 +5,14 @@ import helper_solver as hs
 import helper_matrix as hm
 import helper_plot as hp
 
-from structures.struct_4 import generate_struct
+from structures.struct_2 import generate_struct
 
 
 class FormFinder:
     def __init__(self, solver="FD_fixed", debug=False):
         self.solver = solver
         self.debug = debug
-        hl.setup_logging(debug, "debug_log_FF.txt")
+        hl.setup_logging(debug, solver)
 
         # Initialize structure, turn dicts --> arrays
         self.n, self.e, self.e_l, self.n_l, self.n_f = (
@@ -45,12 +45,15 @@ class FormFinder:
         self.F_hist = []
         self.Q_hist = []
 
+        self.done = False
+
         # Dynamic Relaxation parameters
-        self.L_0 = np.copy(self.L)
+        # self.L_0 = np.copy(self.L)
+        self.L_0 = np.eye(self.L.shape[0])
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
-        self.h = 1.0
+        self.h = 0.1
         self.gamma = 1.0
         self.v_x = np.zeros_like(self.p_x)
         self.v_y = np.zeros_like(self.p_y)
@@ -62,7 +65,7 @@ class FormFinder:
         self.first = True
 
     def solve(self):
-        """Main loop for structural simulation."""
+        """Main loop for form finding."""
         TOL = 1e-4
         MAX_ITER = 2000
 
@@ -80,29 +83,34 @@ class FormFinder:
             else:
                 raise ValueError(f"Unknown solver type: {self.solver}")
 
-            # Update nodes
-            self.n = hs.nodes_update(
-                self.n, self.d_x, self.d_y, self.d_z, self.n_f
-            )
-            self.node_pos_hist.append(self.n.copy())
+            if not self.done:
+                # Update nodes
+                self.n = hs.nodes_update(
+                    self.n, self.d_x, self.d_y, self.d_z, self.n_f
+                )
+                self.node_pos_hist.append(self.n.copy())
 
-            # Check for convergence
-            self.L_vec, self.L = hm.create_length_matrix(self.n, self.e)
-            self.L_total_hist.append(np.sum(self.L_vec**2))
-            error = np.abs(self.L_total_hist[-2] - self.L_total_hist[-1])
+                # Check for convergence
+                self.L_vec, self.L = hm.create_length_matrix(self.n, self.e)
+                self.L_total_hist.append(np.sum(self.L_vec**2))
+                error = np.abs(self.L_total_hist[-2] - self.L_total_hist[-1])
 
-            print(
-                f"Iteration {iteration + 1}: "
-                f"Total Len = {self.L_total_hist[-1]:.3f}, "
-                f"Max error = {error:.3e}"
-            )
+                print(
+                    f"Iteration {iteration}: "
+                    f"Total Len = {self.L_total_hist[-1]:.3f}, "
+                    f"Max error = {error:.3e}"
+                )
 
-            hl.debug_new_nodes(self.n)
-            hl.debug_error(self.L_total_hist[-1], error)
+                hl.debug_new_nodes(self.n)
+                hl.debug_error(self.L_total_hist[-1], error)
 
-            if error < TOL:
-                print("Convergence achieved!")
-                break
+            if error < TOL and self.KE_history[-1] < TOL:
+                if self.done:  # If already flagged, exit completely
+                    print("Final update complete. Exiting loop.")
+                    break
+                else:
+                    print("Convergence achieved! Performing one final update.")
+                    self.done = True  # Set flag for final update
 
         else:
             print("Max iterations reached without convergence.")
@@ -116,6 +124,12 @@ class FormFinder:
         K = self.C.T @ Q @ self.C
         D = self.C.T @ Q @ self.C
         D_f = self.C.T @ Q @ self.C_f
+
+        self.F_hist.append(F)
+        self.Q_hist.append(Q)
+
+        if self.done:
+            return
 
         hl.debug_force_and_density(F, Q)
         hl.debug_stiffness_FD(K, D, D_f)
@@ -132,9 +146,6 @@ class FormFinder:
 
         hl.debug_deltas(self.d_x, self.d_y, self.d_z)
 
-        self.F_hist.append(F)
-        self.Q_hist.append(Q)
-
     def fd_iter_solver(self):
         """Force Density (FD) solver with fixed F."""
         F = np.diag(self.e_l.flatten())
@@ -142,6 +153,12 @@ class FormFinder:
         K = self.C.T @ Q @ self.C
         D = self.C.T @ Q @ self.C
         D_f = self.C.T @ Q @ self.C_f
+
+        self.F_hist.append(F)
+        self.Q_hist.append(Q)
+
+        if self.done:
+            return
 
         hl.debug_force_and_density(F, Q)
         hl.debug_stiffness_FD(K, D, D_f)
@@ -171,6 +188,12 @@ class FormFinder:
             self.F_0,
         )
         Q = F @ np.linalg.inv(self.L)
+        self.F_hist.append(F)
+        self.Q_hist.append(Q)
+
+        if self.done:
+            return
+
         hl.debug_force_and_density(F, Q)
 
         K_g = Q
@@ -212,9 +235,6 @@ class FormFinder:
         hl.debug_velocity_kinetic_energy(self.v_x, self.v_y, self.v_z, KE)
         hl.debug_deltas(self.d_x, self.d_y, self.d_z)
 
-        self.F_hist.append(F)
-        self.Q_hist.append(Q)
-
     def dr_leapfrog_solver(self):
         """Dynamic Relaxation (DR) solver."""
         F = hm.create_force_matrix(
@@ -225,6 +245,13 @@ class FormFinder:
             self.F_0,
         )
         Q = F @ np.linalg.inv(self.L)
+
+        self.F_hist.append(F)
+        self.Q_hist.append(Q)
+
+        if self.done:
+            return
+
         hl.debug_force_and_density(F, Q)
 
         K_g = Q
@@ -253,7 +280,7 @@ class FormFinder:
             *hm.partition_nodes_coordinates(self.n, self.n_f),
         )
 
-        # For use in energy peak
+        # For use in energy peak backtrack
         d_x_save = np.copy(self.d_x)
         d_y_save = np.copy(self.d_y)
         d_z_save = np.copy(self.d_z)
@@ -307,15 +334,15 @@ class FormFinder:
 
             self.d_x -= (
                 self.h * (1 + q) * self.gamma * self.v_x
-                + self.gamma * (q) * d_x_save
+                + self.gamma * q * d_x_save
             )
             self.d_y -= (
                 self.h * (1 + q) * self.gamma * self.v_y
-                + self.gamma * (q) * d_y_save
+                + self.gamma * q * d_y_save
             )
             self.d_z -= (
                 self.h * (1 + q) * self.gamma * self.v_z
-                + self.gamma * (q) * d_z_save
+                + self.gamma * q * d_z_save
             )
 
             hl.debug_deltas(self.d_x, self.d_y, self.d_z)
@@ -326,9 +353,6 @@ class FormFinder:
         self.KE_prev2 = self.KE_prev
         self.KE_prev = KE
         self.KE_history.append(KE)
-
-        self.F_hist.append(F)
-        self.Q_hist.append(Q)
 
     def post_process(self):
         """Final visualization and debugging."""
@@ -350,6 +374,11 @@ class FormFinder:
 if __name__ == "__main__":
     # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
-    simulation = FormFinder(solver="DR_imp", debug=True)
-    # simulation = FormFinder(solver="DR_leap", debug=True)
+    # simulation = FormFinder(solver="DR_imp", debug=True)
+    simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()
+
+    # NOTES FOR ME
+    # DR with no preload is basically FD_fixed with Q = 1
+    # DR_leap: turn off energy peak reset for Struct_2 to see oscillation
+    # Peaks in Energy, correspond to where L_total = 0, so start oscillation

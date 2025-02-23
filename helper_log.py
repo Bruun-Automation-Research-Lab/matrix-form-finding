@@ -8,7 +8,7 @@ def setup_logging(debug=False, filename="debug_log.txt"):
 
     if debug:
         log.basicConfig(
-            filename=f"./debug/{filename}",
+            filename=f"./debug/debug_{filename}.txt",
             level=log.DEBUG,
             format="%(message)s",
             filemode="w",

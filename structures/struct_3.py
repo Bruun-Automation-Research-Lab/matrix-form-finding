@@ -5,7 +5,7 @@
 import numpy as np
 
 
-def generate_struct(N=5, spacing=2.5, ratio_outer_to_inner=30):
+def generate_struct(N=21, spacing=0.5, ratio_outer_to_inner=30):
     nodes = {}
     elements = {}
     elements_preload = {}
@@ -42,8 +42,8 @@ def generate_struct(N=5, spacing=2.5, ratio_outer_to_inner=30):
     # Define external loads (zero by default)
     nodes_load = {node_id: (0.0, 0.0, 0.0) for node_id in nodes}
 
-    # nodes_load[12] = (0.0, 0.0, 5.0)
-    # nodes_load[15] = (0.0, 5.0, 0.0)
+    nodes_load[12] = (0.0, 0.0, 5.0)
+    nodes_load[15] = (0.0, 5.0, 0.0)
 
     # Generate elements (grid connectivity)
     element_id = 1
