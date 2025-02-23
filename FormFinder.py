@@ -57,8 +57,8 @@ class FormFinder:
         self.done = False
 
         # Dynamic Relaxation parameters
-        self.L_0 = np.copy(self.L)
-        # self.L_0 = np.eye(self.L.shape[0])
+        # self.L_0 = np.copy(self.L)
+        self.L_0 = np.eye(self.L.shape[0])  # for Struct_2, benchmark
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
@@ -386,11 +386,6 @@ class FormFinder:
 if __name__ == "__main__":
     # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
-    simulation = FormFinder(solver="DR_imp", debug=True)
-    # simulation = FormFinder(solver="DR_leap", debug=True)
+    # simulation = FormFinder(solver="DR_imp", debug=True)
+    simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()
-
-    # NOTES FOR ME
-    # DR with no preload is basically FD_fixed with Q = 1
-    # DR_leap: turn off energy peak reset for Struct_2 to see oscillation
-    # Peaks in Energy, correspond to where L_total = 0, so start oscillation
