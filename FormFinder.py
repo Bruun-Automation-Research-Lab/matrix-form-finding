@@ -5,7 +5,7 @@ import helper_solver as hs
 import helper_matrix as hm
 import helper_plot as hp
 
-from structures.struct_5 import generate_struct
+from structures.struct_2 import generate_struct
 
 
 class FormFinder:
@@ -57,6 +57,8 @@ class FormFinder:
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
+        self.E = np.diag(np.zeros(len(self.e)))
+        self.A = np.diag(np.zeros(len(self.e)))
         self.h = 0.1
         self.gamma = 1.0
         self.v_x = np.zeros_like(self.p_x)
@@ -71,7 +73,7 @@ class FormFinder:
     def solve(self):
         """Main loop for form finding."""
         TOL = 1e-4
-        MAX_ITER = 2000
+        MAX_ITER = 100
 
         for iteration in range(MAX_ITER):
             hl.debug_iteration(iteration, self.solver)
@@ -377,8 +379,8 @@ class FormFinder:
 if __name__ == "__main__":
     # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
-    # simulation = FormFinder(solver="DR_imp", debug=True)
-    simulation = FormFinder(solver="DR_leap", debug=True)
+    simulation = FormFinder(solver="DR_imp", debug=True)
+    # simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()
 
     # NOTES FOR ME
