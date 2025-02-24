@@ -55,14 +55,18 @@ class FormFinder:
 
         self.done = False
 
-        # Dynamic Relaxation parameters
-        # self.L_0 = np.copy(self.L)
-        self.L_0 = np.eye(self.L.shape[0])  # for Struct_2, benchmark, DR
+        # DR/SM parameters
+        self.L_0 = np.copy(self.L)
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
+
+        # for Struct_2, benchmark, DR and SM
+        # self.L_0 = np.eye(self.L.shape[0])
         # self.E = np.diag(np.zeros(len(self.e)))
         # self.A = np.diag(np.zeros(len(self.e)))
+
+        # DR parameters
         self.h = 0.1
         self.gamma = 1.0
         self.v_x = np.zeros_like(self.p_x)
