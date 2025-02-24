@@ -5,7 +5,9 @@ import utils.solver as hs
 import utils.matrix as hm
 import utils.plot as hp
 
-from structures.struct_0 import generate_struct
+from scipy.linalg import null_space
+
+from structures.struct__02 import generate_struct
 
 
 class FormFinder:
@@ -145,6 +147,31 @@ class FormFinder:
 
         self.F_hist.append(F)
         self.Q_hist.append(Q)
+
+        # test = (hm.partition_nodes_coordinates(self.n, self.n_f),)
+
+        # x = test[0][0]
+        # y = test[0][1]
+        # z = test[0][2]
+        # x_f = test[0][3]
+        # y_f = test[0][4]
+        # z_f = test[0][5]
+
+        # u = self.C_i @ x + self.C_f @ x_f
+        # U = np.diag(u.flatten())
+
+        # v = self.C_i @ y + self.C_f @ y_f
+        # V = np.diag(v.flatten())
+
+        # w = self.C_i @ z + self.C_f @ z_f
+        # W = np.diag(w.flatten())
+
+        # # Compute coefficient matrix A = [C.T @ U; C.T @ V; C.T @ W]
+        # A = np.vstack([self.C_i.T @ U, self.C_i.T @ V, self.C_i.T @ W])
+
+        # # Compute the null space (solution for A @ q = 0)
+        # q = null_space(A)
+        # print(q)
 
         if self.done:
             return
@@ -437,8 +464,8 @@ class FormFinder:
 
 
 if __name__ == "__main__":
-    # simulation = FormFinder(solver="FD_fixed", debug=True)
+    simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
     # simulation = FormFinder(solver="DR_imp", debug=True)
-    simulation = FormFinder(solver="SM", debug=True)
+    # simulation = FormFinder(solver="SM", debug=True)
     simulation.solve()
