@@ -5,6 +5,7 @@
 *.3dmbak
 *.rhl
 *.stlbak
+*.gif
 .DS_Store
 debug/*.txt
 

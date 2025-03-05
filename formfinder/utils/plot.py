@@ -317,7 +317,9 @@ def plot_network_animated(
     ax.legend()
 
 
-def plot_animation(node_positions, e, n_f, t=1, plot_text=False):
+def plot_animation(
+    node_positions, e, n_f, t=1, plot_text=False, output_path="animation.gif"
+):
     # Animation update function
     def update(frame):
         plot_network_animated(
@@ -328,9 +330,12 @@ def plot_animation(node_positions, e, n_f, t=1, plot_text=False):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection="3d")
 
-    _ = animation.FuncAnimation(
+    anim = animation.FuncAnimation(
         fig, update, frames=len(node_positions), interval=t
     )
+
+    # Save the animation as a GIF
+    # anim.save(output_path, writer="pillow")
 
     plt.show()
 

@@ -77,7 +77,7 @@ class FormFinder:
 
     def solve(self):
         """Main loop for form finding."""
-        TOL = 1e-4
+        TOL = 1e-3
         MAX_ITER = 100
 
         for iteration in range(MAX_ITER):
@@ -370,7 +370,7 @@ class FormFinder:
         """Final visualization and debugging."""
         hp.plot_kinetic_energy(self.KE_history, self.solver)
         hp.plot_animation(
-            self.node_pos_hist, self.e, self.n_f, t=1, plot_text=True
+            self.node_pos_hist, self.e, self.n_f, t=1, plot_text=False
         )
         hp.plot_network_views(
             self.n, self.e, self.n_l, self.n_f, plot_text=True
@@ -386,6 +386,6 @@ class FormFinder:
 if __name__ == "__main__":
     # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
-    simulation = FormFinder(solver="DR_imp", debug=True)
-    # simulation = FormFinder(solver="DR_leap", debug=True)
+    # simulation = FormFinder(solver="DR_imp", debug=True)
+    simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()
