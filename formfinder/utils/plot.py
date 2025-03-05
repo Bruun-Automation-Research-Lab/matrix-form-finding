@@ -318,7 +318,13 @@ def plot_network_animated(
 
 
 def plot_animation(
-    node_positions, e, n_f, t=1, plot_text=False, output_path="animation.gif"
+    node_positions,
+    e,
+    n_f,
+    t=1,
+    plot_text=False,
+    output_path="animation.gif",
+    save_gif="False",
 ):
     # Animation update function
     def update(frame):
@@ -335,7 +341,8 @@ def plot_animation(
     )
 
     # Save the animation as a GIF
-    # anim.save(output_path, writer="pillow")
+    if save_gif:
+        anim.save(output_path, writer="pillow")
 
     plt.show()
 

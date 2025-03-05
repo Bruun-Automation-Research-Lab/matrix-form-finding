@@ -370,7 +370,12 @@ class FormFinder:
         """Final visualization and debugging."""
         hp.plot_kinetic_energy(self.KE_history, self.solver)
         hp.plot_animation(
-            self.node_pos_hist, self.e, self.n_f, t=1, plot_text=False
+            self.node_pos_hist,
+            self.e,
+            self.n_f,
+            t=1,
+            plot_text=False,
+            save_gif=True,
         )
         hp.plot_network_views(
             self.n, self.e, self.n_l, self.n_f, plot_text=True
