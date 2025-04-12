@@ -1,0 +1,18 @@
+import numpy as np
+
+# Generate a random 3x4 matrix C.T (which means C is 4x3)
+C = np.random.rand(4, 3)
+
+# Generate a random 4x4 diagonal matrix U
+diagonal_elements = np.random.rand(4)  # Random values for the diagonal
+U = np.diag(diagonal_elements)
+
+# Compute C.T * U
+CTU = C.T @ U
+UC = U @ C
+
+# Print results
+print("C^T (3x4 matrix):\n", C.T)
+print("\nU (4x4 diagonal matrix):\n", U)
+print("\nC^T * U (3x4 matrix):\n", CTU)
+print("\nU * C (3x4 matrix):\n", UC)

@@ -7,7 +7,7 @@ import utils.plot as hp
 
 from scipy.linalg import null_space
 
-from structures.struct__02 import generate_struct
+from structures.struct_2 import generate_struct
 
 
 class FormFinder:
@@ -63,7 +63,7 @@ class FormFinder:
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
 
-        # for Struct_2, benchmark, DR and SM
+        # # for Struct_2, benchmark, DR and SM
         # self.L_0 = np.eye(self.L.shape[0])
         # self.E = np.diag(np.zeros(len(self.e)))
         # self.A = np.diag(np.zeros(len(self.e)))
@@ -464,8 +464,9 @@ class FormFinder:
 
 
 if __name__ == "__main__":
-    simulation = FormFinder(solver="FD_fixed", debug=True)
+    # simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
     # simulation = FormFinder(solver="DR_imp", debug=True)
-    # simulation = FormFinder(solver="SM", debug=True)
+    # simulation = FormFinder(solver="DR_leap", debug=True)
+    simulation = FormFinder(solver="SM", debug=True)
     simulation.solve()
