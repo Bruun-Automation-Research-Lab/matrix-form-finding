@@ -12,6 +12,7 @@ dependencies:
   - pandas
   - matplotlib
   - notebook
+  - jupyterlab_rise # going from jupyter lab to presentation
   # - seaborn     # for prettier plots (optional)
   # - scikit-learn  # for machine learning demos (optional)
   # - sympy       # for symbolic math (optional)
