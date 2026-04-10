@@ -5,7 +5,7 @@ import utils.solver as hs
 import utils.matrix as hm
 import utils.plot as hp
 
-from structures.struct_4 import generate_struct
+from structures.struct_1 import generate_struct
 
 
 class FormFinder:
@@ -389,8 +389,8 @@ class FormFinder:
 
 
 if __name__ == "__main__":
-    # simulation = FormFinder(solver="FD_fixed", debug=True)
+    simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=True)
-    simulation = FormFinder(solver="DR_imp", debug=True)
+    # simulation = FormFinder(solver="DR_imp", debug=True)
     # simulation = FormFinder(solver="DR_leap", debug=True)
     simulation.solve()
