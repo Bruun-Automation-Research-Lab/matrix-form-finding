@@ -116,25 +116,7 @@ def create_node_force_vectors(nodes_load, nodes_fixed):
     return p_x.reshape(-1, 1), p_y.reshape(-1, 1), p_z.reshape(-1, 1)
 
 
-# def create_length_matrix(nodes, elements):
-#     # Adjust indices (convert from 1-based to 0-based)
-#     elements = elements - 1
-
-#     # Compute lengths
-#     lengths = np.linalg.norm(
-#         nodes[elements[:, 0]] - nodes[elements[:, 1]], axis=1
-#     )
-
-#     # Convert to column vector
-#     l_vec = lengths.reshape(-1, 1)
-
-#     # Create diagonal matrix
-#     L_mat = np.diag(l_vec.flatten())
-
-#     return l_vec, L_mat
-
-
-def create_length_matrix2(n, C):
+def create_length_matrix(n, C):
     """
     Calculate element lengths
     Veenendaal and Block, 2012, implementation
