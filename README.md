@@ -12,5 +12,10 @@ conda activate matrix_formfind
 ```
 
 ```zsh
+conda env create -f environment_jupyter.yml
+conda activate CEE6501_jupyter
+```
+
+```zsh
 pre-commit install
 ```
