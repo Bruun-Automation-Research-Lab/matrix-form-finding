@@ -1,29 +1,28 @@
 {
-    "python.pythonPath": "C:\\Users\\Edvard\\.conda\\envs\\bar_test\\python.exe",
     "python.terminal.activateEnvironment": true,
     "python.envFile": "${workspaceFolder}/.vscode/.env",
-    //
-    // Execute the file from current folder it is in
-    "python.defaultInterpreterPath": "python",
-    "python.terminal.executeInFileDir": false,
-    "terminal.integrated.cwd": "${workspaceFolder}",
     //
     //INTEGRATED TERMINAL
     "terminal.integrated.tabs.enabled": true,
     "terminal.integrated.copyOnSelection": true,
     "terminal.integrated.profiles.windows": {
-        "Command Prompt NEW": {
+        "Conda Prompt (workspace)": {
             "path": [
                 "${env:windir}\\Sysnative\\cmd.exe",
                 "${env:windir}\\System32\\cmd.exe"
             ],
-            "args": [],
+            "args": [
+                "/K",
+                "C:\\ProgramData\\Anaconda3\\Scripts\\activate.bat"
+              ],
             "icon": "terminal-cmd"
         }
     },
     "files.exclude": {
         "**/.git": false
     },
+    // THIS CAN MESS WITH VARIABLES PASSED TO THE TERMINAL
+    // "terminal.integrated.defaultProfile.windows": "Conda Prompt (workspace)", 
     //
     //CODE FORMATTING
     "editor.formatOnSave": true,
