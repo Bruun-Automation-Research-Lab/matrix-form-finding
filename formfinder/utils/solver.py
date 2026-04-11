@@ -18,6 +18,27 @@ def nodes_delta(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
     return delta_x, delta_y, delta_z
 
 
+def nodes_delta2(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
+    # Compute the right-hand side vector (p - D * x - D_f * x_f)
+
+    p_3x3 = np.vstack([p_x, p_y, p_z])
+    x_3x3 = np.vstack([x, y, z])
+    x_f_3x3 = np.vstack([x_f, y_f, z_f])
+
+    rhs = p_3x3 - D @ x_3x3 - D_f @ x_f_3x3
+
+    # Solve for the displacements (delta)
+    delta_x_3x3 = np.linalg.solve(K, rhs)
+
+    # split back into x, y, z vectors
+    n = delta_x_3x3.shape[0] // 3
+    delta_x = delta_x_3x3[0:n, :]
+    delta_y = delta_x_3x3[n : 2 * n, :]
+    delta_z = delta_x_3x3[2 * n : 3 * n, :]
+
+    return delta_x, delta_y, delta_z
+
+
 def nodes_update(nodes, d_x, d_y, d_z, n_f):
     # Flatten the free_node_mask to match the shape of n_f
     free_node_mask = n_f.flatten() == 0

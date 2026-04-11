@@ -118,23 +118,86 @@ def create_node_force_vectors(nodes_load, nodes_fixed):
 
 def create_length_matrix(n, C):
     """
-    Calculate element lengths
-    Veenendaal and Block, 2012, implementation
+    Calculate element lengths and element direction cosine vectors.
     """
-
-    # member coordinate diffs, [m x 3]
+    # Member coordinate differences, [m x 3]
     U = C @ n
 
-    # member coordinate diffs in x,y,z
+    # Member coordinate diffs in x, y, z
     U_bar = np.diag(U[:, 0])
     V_bar = np.diag(U[:, 1])
     W_bar = np.diag(U[:, 2])
 
+    # Element lengths
     L = np.sqrt(U_bar**2 + V_bar**2 + W_bar**2)
-
     L_vec = np.diag(L).reshape(-1, 1)
 
-    return L_vec, L
+    # Direction cosines G = [dx/L, dy/L, dz/L] for each member
+    # Avoid divide-by-zero for zero-length members
+    with np.errstate(divide="ignore", invalid="ignore"):
+        G = U / L_vec
+        G[np.isnan(G)] = 0.0
+        G[np.isinf(G)] = 0.0
+
+    return L_vec, L, G
+
+
+def create_triple_stack(A):
+    """
+    Create a triple stack of an input array.
+
+    Behavior
+    --------
+    1. If A is a column vector of shape (n, 1):
+       return a vertical stack
+
+           [A]
+           [A]
+           [A]
+
+       with shape (3n, 1)
+
+    2. If A is a 2D matrix of shape (m, n) with n > 1:
+       return a block-diagonal triple stack
+
+           [A 0 0]
+           [0 A 0]
+           [0 0 A]
+
+       with shape (3m, 3n)
+
+    Parameters
+    ----------
+    A : ndarray
+        Input array. Must be 2D.
+
+    Returns
+    -------
+    A3 : ndarray
+        Triple-stacked array.
+    """
+    import numpy as np
+
+    A = np.asarray(A)
+
+    if A.ndim != 2:
+        raise ValueError("Input must be a 2D array.")
+
+    rows, cols = A.shape
+
+    # Column vector: vertical stack
+    if cols == 1:
+        return np.vstack([A, A, A])
+
+    # Matrix: block-diagonal stack
+    Z = np.zeros_like(A)
+    return np.block(
+        [
+            [A, Z, Z],
+            [Z, A, Z],
+            [Z, Z, A],
+        ]
+    )
 
 
 def create_elastic_stiffness_matrix(E, A, L_0):
@@ -237,9 +300,9 @@ def create_force_matrix(L, L_0, E, A, F_0):
     F_0_diag = np.diag(F_0)
 
     # Compute force vector
-    forces = (E_diag * A_diag / L_0_diag) * (L_diag - L_0_diag) + F_0_diag
+    F = (E_diag * A_diag / L_0_diag) * (L_diag - L_0_diag) + F_0_diag
 
-    # # Return as diagonal matrix
-    # F = np.diag(forces)
+    # Return as diagonal matrix
+    F_diag = np.diag(F)
 
-    return np.diag(forces)
+    return F_diag
