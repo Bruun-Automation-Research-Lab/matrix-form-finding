@@ -2,39 +2,45 @@ import numpy as np
 
 
 def nodes_delta(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
+    """
+    Solve for the free-node displacement increments in the standard
+    n formulation, where x, y, and z are solved separately as
+    three (n_i x 1) systems.
+    """
     # Compute the right-hand side vector (p - D * x - D_f * x_f)
     rhs_x = p_x - D @ x - D_f @ x_f
     rhs_y = p_y - D @ y - D_f @ y_f
     rhs_z = p_z - D @ z - D_f @ z_f
 
-    # Compute the inverse of D
-    K_inv = np.linalg.inv(K)
-
     # Solve for the displacements (delta)
-    delta_x = K_inv @ rhs_x
-    delta_y = K_inv @ rhs_y
-    delta_z = K_inv @ rhs_z
+    delta_x = np.linalg.solve(K, rhs_x)
+    delta_y = np.linalg.solve(K, rhs_y)
+    delta_z = np.linalg.solve(K, rhs_z)
 
     return delta_x, delta_y, delta_z
 
 
-def nodes_delta2(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
+def nodes_delta_3n(p_x, p_y, p_z, K, D, D_f, x, y, z, x_f, y_f, z_f):
+    """
+    Solve for the free-node displacement increments using the stacked
+    3n formulation, where x, y, and z are solved together in one system.
+    """
     # Compute the right-hand side vector (p - D * x - D_f * x_f)
 
-    p_3x3 = np.vstack([p_x, p_y, p_z])
-    x_3x3 = np.vstack([x, y, z])
-    x_f_3x3 = np.vstack([x_f, y_f, z_f])
+    p_3n = np.vstack([p_x, p_y, p_z])  # (3n_i x 1)
+    xyz = np.vstack([x, y, z])  # (3n_i x 1)
+    xyz_f = np.vstack([x_f, y_f, z_f])  # (3n_f x 1)
 
-    rhs = p_3x3 - D @ x_3x3 - D_f @ x_f_3x3
+    rhs = p_3n - D @ xyz - D_f @ xyz_f
 
     # Solve for the displacements (delta)
-    delta_x_3x3 = np.linalg.solve(K, rhs)
+    delta_3n = np.linalg.solve(K, rhs)
 
     # split back into x, y, z vectors
-    n = delta_x_3x3.shape[0] // 3
-    delta_x = delta_x_3x3[0:n, :]
-    delta_y = delta_x_3x3[n : 2 * n, :]
-    delta_z = delta_x_3x3[2 * n : 3 * n, :]
+    n = delta_3n.shape[0] // 3
+    delta_x = delta_3n[0:n, :]
+    delta_y = delta_3n[n : 2 * n, :]
+    delta_z = delta_3n[2 * n : 3 * n, :]
 
     return delta_x, delta_y, delta_z
 

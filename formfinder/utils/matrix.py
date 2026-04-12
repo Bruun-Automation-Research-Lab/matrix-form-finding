@@ -200,74 +200,72 @@ def create_triple_stack(A):
     )
 
 
-def create_elastic_stiffness_matrix(E, A, L_0):
-    """
-    Calculate the elastic stiffness matrix K_e for each element.
+# def create_elastic_k(E, A, L_0):
+#     """
+#     Calculate the elastic stiffness matrix K_e for each element.
 
-    Parameters:
-    E        : np.ndarray (diagonal matrix) - Young's modulus matrix
-    A        : np.ndarray (diagonal matrix) - Cross-sectional area matrix
-    L_0      : np.ndarray (n,) - Initial length of each element
-    elements : np.ndarray (n x 2) - Element connectivity matrix
-    nodes    : np.ndarray (num_nodes x 2) - Node coordinate matrix
-    num_nodes: int - Total number of nodes in the system
+#     Parameters:
+#     E        : np.ndarray (diagonal matrix) - Young's modulus matrix
+#     A        : np.ndarray (diagonal matrix) - Cross-sectional area matrix
+#     L_0      : np.ndarray (n,) - Initial length of each element
+#     elements : np.ndarray (n x 2) - Element connectivity matrix
+#     nodes    : np.ndarray (num_nodes x 2) - Node coordinate matrix
+#     num_nodes: int - Total number of nodes in the system
 
-    Returns:
-    K_g : np.ndarray (diagonal matrix) - Global stiffness matrix
+#     Returns:
+#     K_g : np.ndarray (diagonal matrix) - Global stiffness matrix
+#     """
+#     # Extract diagonal values from matrices E, A
+#     E_diag = np.diag(E)
+#     A_diag = np.diag(A)
+#     L_0_diag = np.diag(L_0)
+
+#     # Compute element stiffness values (E*A / L_0 for each element)
+#     k_e = (E_diag * A_diag) / L_0_diag
+
+#     # Convert to diagonal matrix
+#     K_e = np.diag(k_e)
+
+#     return k_e, K_e
+
+
+def create_elastic_k(E, A, L_0, as_matrix=True):
     """
-    # Extract diagonal values from matrices E, A
+    Compute the scalar elastic stiffness coefficient for each element,
+
+        k_e = EA / L_0
+
+    Parameters
+    ----------
+    E : np.ndarray
+        Diagonal matrix of Young's modulus values, one per element.
+    A : np.ndarray
+        Diagonal matrix of cross-sectional area values, one per element.
+    L_0 : np.ndarray
+        Diagonal matrix of initial element lengths.
+    as_matrix : bool, optional
+        If True, return a diagonal matrix.
+        If False, return a vector.
+
+    Returns
+    -------
+    np.ndarray
+        Element elastic stiffness values, either as:
+        - diagonal matrix if as_matrix=True
+        - vector if as_matrix=False
+    """
     E_diag = np.diag(E)
     A_diag = np.diag(A)
     L_0_diag = np.diag(L_0)
 
-    # Compute element stiffness values (E*A / L_0 for each element)
     k_e = (E_diag * A_diag) / L_0_diag
 
-    # Convert to diagonal matrix
-    K_e = np.diag(k_e)
+    if as_matrix:
+        k = np.diag(k_e)
+    else:
+        k = k_e
 
-    return K_e
-
-
-def create_nodal_stiffness_matrix(E, A, L_0, F, L, elements, num_nodes):
-    """
-    Create K = Ke + Kg = (EA/L_0) + (F/L) for each node.
-
-    This is not currently used, but used to check C.T x K x C is same
-
-    Parameters (each element):
-    E        : np.ndarray (diagonal square matrix) - Young's modulus
-    A        : np.ndarray (diagonal square matrix) - X-sectional area
-    L_0      : np.ndarray (diagonal square matrix) - Initial length
-    F        : np.ndarray (diagonal square matrix) - Force
-    L        : np.ndarray (diagonal square matrix) - Current length
-    elements : np.ndarray (n x 2) - Element connectivity (1-based indexing)
-    num_nodes: int - Total number of nodes
-
-    Returns:
-    nodal_values : np.ndarray (num_nodes,)
-    """
-    # Extract diagonal values
-    E_diag = np.diag(E)
-    A_diag = np.diag(A)
-    L_0_diag = np.diag(L_0)
-    F_diag = np.diag(F)
-    L_diag = np.diag(L)
-
-    # Compute (EA/L₀) + (F/L) for each element
-    element_values = (E_diag * A_diag) / L_0_diag + F_diag / L_diag
-
-    # Initialize nodal contribution array
-    nodal_values = np.zeros(num_nodes)
-
-    # Assemble contributions at each node
-    for i, (node1, node2) in enumerate(
-        elements - 1
-    ):  # Convert 1-based to 0-based indexing
-        nodal_values[node1] += element_values[i]
-        nodal_values[node2] += element_values[i]
-
-    return nodal_values
+    return k
 
 
 def create_force_matrix(L, L_0, E, A, F_0):
