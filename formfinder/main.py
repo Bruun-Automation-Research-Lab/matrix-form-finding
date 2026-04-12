@@ -20,7 +20,8 @@ class FormFinder:
             hm.generate_struct_arrays(*generate_struct())
         )
 
-        hl.debug_struct_input(self.n, self.e, self.e_l, self.n_l, self.n_f)
+        if self.debug:
+            hl.debug_struct_input(self.n, self.e, self.e_l, self.n_l, self.n_f)
 
         hp.plot_network_views(
             self.n, self.e, self.n_l, self.n_f, plot_text=True
@@ -51,15 +52,16 @@ class FormFinder:
             self.C_total, self.n_f
         )
 
-        hl.debug_struct_matrices(
-            self.C_total,
-            self.C_i,
-            self.C_f,
-            self.p_x,
-            self.p_y,
-            self.p_z,
-            self.n_f,
-        )
+        if self.debug:
+            hl.debug_struct_matrices(
+                self.C_total,
+                self.C_i,
+                self.C_f,
+                self.p_x,
+                self.p_y,
+                self.p_z,
+                self.n_f,
+            )
 
         # ------------------------------------
         #  Stacks for 3m x 3n operations
@@ -110,7 +112,8 @@ class FormFinder:
         """Main loop for form finding."""
 
         for iteration in range(self.MAX_ITER):
-            hl.debug_iteration(iteration, self.solver)
+            if self.debug:
+                hl.debug_iteration(iteration, self.solver)
 
             if self.solver == "FD_fixed":
                 self.fd_fixed_solver()
@@ -145,8 +148,9 @@ class FormFinder:
                     f"Max error = {error:.3e}"
                 )
 
-                hl.debug_new_nodes(self.n)
-                hl.debug_error(self.L_total_hist[-1], error)
+                if self.debug:
+                    hl.debug_new_nodes(self.n)
+                    hl.debug_error(self.L_total_hist[-1], error)
 
             if error < self.TOL and self.KE_history[-1] < self.TOL:
                 if self.done:  # If already flagged, exit completely
@@ -175,8 +179,9 @@ class FormFinder:
         if self.done:
             return
 
-        hl.debug_F_L_Q(F, self.L, Q)
-        hl.debug_stiffness_FD(K, D, D_f, self.n_f)
+        if self.debug:
+            hl.debug_F_L_Q(F, self.L, Q)
+            hl.debug_stiffness_FD(K, D, D_f, self.n_f)
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta(
             self.p_x,
@@ -188,7 +193,9 @@ class FormFinder:
             *hm.partition_nodes_coordinates(self.n, self.n_f),
         )
 
-        hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+        if self.debug:
+            hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+
         self.KE_history = [0]  # dont use in FD
 
     def fd_iter_solver(self):
@@ -205,8 +212,9 @@ class FormFinder:
         if self.done:
             return
 
-        hl.debug_F_L_Q(F, self.L, Q)
-        hl.debug_stiffness_FD(K, D, D_f, self.n_f)
+        if self.debug:
+            hl.debug_F_L_Q(F, self.L, Q)
+            hl.debug_stiffness_FD(K, D, D_f, self.n_f)
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta(
             self.p_x,
@@ -217,8 +225,8 @@ class FormFinder:
             D_f,
             *hm.partition_nodes_coordinates(self.n, self.n_f),
         )
-
-        hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+        if self.debug:
+            hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
         self.KE_history = [0]  # dont use in FD
 
     def sm_solver(self):
@@ -259,8 +267,11 @@ class FormFinder:
         D = self.C_i_3mn.T @ Q_3mn @ self.C_i_3mn
         D_f = self.C_i_3mn.T @ Q_3mn @ self.C_f_3mn
 
-        hl.debug_F_L_Q(F, self.L, Q)
-        hl.debug_stiffness_SM(k_g_3mn_diag, k_e_3mn_diag, K, D, D_f, self.n_f)
+        if self.debug:
+            hl.debug_F_L_Q(F, self.L, Q)
+            hl.debug_stiffness_SM(
+                k_g_3mn_diag, k_e_3mn_diag, K, D, D_f, self.n_f
+            )
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta_3n(
             self.p_x,
@@ -272,7 +283,8 @@ class FormFinder:
             *hm.partition_nodes_coordinates(self.n, self.n_f),
         )
 
-        hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+        if self.debug:
+            hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
         self.KE_history = [0]  # dont use in SM
 
     def dr_implicit_solver(self):
@@ -308,8 +320,9 @@ class FormFinder:
         D = self.C_i.T @ Q @ self.C_i
         D_f = self.C_i.T @ Q @ self.C_f
 
-        hl.debug_F_L_Q(F, self.L, Q)
-        hl.debug_stiffness_DR(K_g, K_e, K, D, D_f, self.n_f)
+        if self.debug:
+            hl.debug_F_L_Q(F, self.L, Q)
+            hl.debug_stiffness_DR(K_g, K_e, K, D, D_f, self.n_f)
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta(
             self.p_x,
@@ -332,10 +345,11 @@ class FormFinder:
         KE = hs.compute_kinetic_energy(K, self.v_x, self.v_y, self.v_z, self.h)
         self.KE_history.append(KE)
 
-        hl.debug_velocity_kinetic_energy(
-            self.v_x, self.v_y, self.v_z, self.n_f, KE
-        )
-        hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+        if self.debug:
+            hl.debug_velocity_kinetic_energy(
+                self.v_x, self.v_y, self.v_z, self.n_f, KE
+            )
+            hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
 
     def dr_leapfrog_solver(self):
         """Dynamic Relaxation (DR) solver."""
@@ -370,8 +384,9 @@ class FormFinder:
         D = self.C_i.T @ Q @ self.C_i
         D_f = self.C_i.T @ Q @ self.C_f
 
-        hl.debug_F_L_Q(F, self.L, Q)
-        hl.debug_stiffness_DR(K_g, K_e, K, D, D_f, self.n_f)
+        if self.debug:
+            hl.debug_F_L_Q(F, self.L, Q)
+            hl.debug_stiffness_DR(K_g, K_e, K, D, D_f, self.n_f)
 
         self.d_x, self.d_y, self.d_z = hs.nodes_delta(
             self.p_x,
@@ -406,11 +421,12 @@ class FormFinder:
 
         KE = hs.compute_kinetic_energy(K, self.v_x, self.v_y, self.v_z, self.h)
 
-        hl.debug_velocity_kinetic_energy(
-            self.v_x, self.v_y, self.v_z, self.n_f, KE
-        )
-        hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
-        hl.debug_table([self.KE_prev2, self.KE_prev, KE])
+        if self.debug:
+            hl.debug_velocity_kinetic_energy(
+                self.v_x, self.v_y, self.v_z, self.n_f, KE
+            )
+            hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+            hl.debug_table([self.KE_prev2, self.KE_prev, KE])
 
         # Check for kinetic energy peak: KE_prev2 < KE_prev > KE
         if self.KE_prev2 < self.KE_prev > KE:
@@ -435,7 +451,9 @@ class FormFinder:
             # )
 
             q = q1
-            hl.debug_energy_peak(q1)
+
+            if self.debug:
+                hl.debug_energy_peak(q1)
 
             self.d_x -= (
                 self.h * (1 + q) * self.gamma * self.v_x
@@ -450,7 +468,8 @@ class FormFinder:
                 + self.gamma * q * d_z_save
             )
 
-            hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+            if self.debug:
+                hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
 
             # Reset velocities to 0 (kinetic damping)
             self.first = True
@@ -466,26 +485,29 @@ class FormFinder:
             self.node_pos_hist,
             self.e,
             self.n_f,
-            t=1,
+            t=200,
             plot_text=False,
             save_gif=True,
+            z_scale=2,
         )
         hp.plot_network_views(
             self.n, self.e, self.n_l, self.n_f, plot_text=True
         )
-        hl.debug_final(
-            self.n,
-            self.F_hist[-1],
-            self.L,  # it's been updating
-            self.Q_hist[-1],
-        )
+
+        if self.debug:
+            hl.debug_final(
+                self.n,
+                self.F_hist[-1],
+                self.L,  # it's been updating
+                self.Q_hist[-1],
+            )
 
 
 if __name__ == "__main__":
-    # simulation = FormFinder(solver="FD_fixed", debug=True)
-    # simulation = FormFinder(solver="FD_iter", debug=True)
-    # simulation = FormFinder(solver="SM", debug=True)
-    # simulation = FormFinder(solver="DR_imp", debug=False)
-    simulation = FormFinder(solver="DR_leap", debug=True)
+    # simulation = FormFinder(solver="FD_fixed", debug=False)
+    # simulation = FormFinder(solver="FD_iter", debug=False)
+    # simulation = FormFinder(solver="SM", debug=False)
+    simulation = FormFinder(solver="DR_imp", debug=False)
+    # simulation = FormFinder(solver="DR_leap", debug=False)
 
     simulation.solve()
