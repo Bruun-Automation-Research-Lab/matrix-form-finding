@@ -812,8 +812,8 @@ def debug_final(n, F, L, Q, scale=1):
             name1="x",
             name2="y",
             name3="z",
-            decimals=2,
-            col_width=6,
+            decimals=3,
+            col_width=7,
         ),
     )
 

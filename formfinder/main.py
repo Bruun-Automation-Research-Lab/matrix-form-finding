@@ -7,8 +7,6 @@ import utils.solver as hs
 import utils.matrix as hm
 import utils.plot as hp
 
-# from formfinder.structures.struct_1a import generate_struct
-
 
 class FormFinder:
     def __init__(
@@ -107,21 +105,32 @@ class FormFinder:
         # ------------------------------------
         #  SM and DR parameters
         # ------------------------------------
-        # self.L_0 = np.copy(self.L)
-        self.L_0 = np.eye(self.L.shape[0])  # for Struct_2, benchmark
-
         self.F_0 = np.diag(np.copy(self.e_l).flatten())
 
+        # You can set these to whatever in normal analysis
         self.E = np.eye(len(self.e))
         self.A = np.eye(len(self.e))
-        # self.E = np.diag(np.zeros(len(self.e)))
-        # self.A = np.diag(np.zeros(len(self.e)))
+        self.L_0 = np.copy(self.L)  # L_0 is initial len
+
+        self.fd_mode = "constant_f"
+
+        match self.fd_mode:
+            case "normal":
+                None
+            case "constant_q":
+                # Makes q = 1, when preload = 1
+                self.E = np.eye(len(self.e))
+                self.A = np.eye(len(self.e))
+                self.L_0 = np.eye(self.L.shape[0])
+            case "constant_f":
+                # Will set f as whatever specified as preload
+                self.L_0 = np.copy(self.L)  # L_0 is initial len
 
         # ------------------------------------
         #  DR parameters
         # ------------------------------------
-        self.h = 0.1
-        self.gamma = 1.0
+        self.h = 0.1  # time-step
+        self.gamma = 0.9  # damping
         self.v_x = np.zeros_like(self.p_x)
         self.v_y = np.zeros_like(self.p_y)
         self.v_z = np.zeros_like(self.p_z)
@@ -255,6 +264,11 @@ class FormFinder:
 
     def sm_solver(self):
         """Stiffnes Method (SM) solver."""
+
+        match self.fd_mode:
+            case "constant_f":
+                self.L_0 = np.copy(self.L)
+
         F = hm.create_force_matrix(
             self.L,
             self.L_0,
@@ -314,6 +328,11 @@ class FormFinder:
 
     def dr_implicit_solver(self):
         """Dynamic Relaxation (DR) solver."""
+
+        match self.fd_mode:
+            case "constant_f":
+                self.L_0 = np.copy(self.L)  # L_0 is initial len
+
         F = hm.create_force_matrix(
             self.L,
             self.L_0,
@@ -336,8 +355,9 @@ class FormFinder:
 
         # Transformed Stiffness (n_i x n_i)
         K = self.C_i.T @ K_total @ self.C_i
-        # Kronecker delta as an identity matrix
-        # This seems to destabilize when doing leapfrog integration
+
+        # # Kronecker delta as an identity matrix
+        # # This seems to destabilize when doing leapfrog integration
         # delta = np.eye(K.shape[0])
         # K = K * delta
 
@@ -378,6 +398,7 @@ class FormFinder:
 
     def dr_leapfrog_solver(self):
         """Dynamic Relaxation (DR) solver."""
+
         F = hm.create_force_matrix(
             self.L,
             self.L_0,
@@ -546,11 +567,26 @@ class FormFinder:
 
 if __name__ == "__main__":
 
-    solvers = ["FD_fixed", "FD_iter", "SM", "DR_imp", "DR_leap"]
-    structs = ["struct_1a", "struct_1b", "struct_2", "struct_3", "struct_4"]
+    solvers = {
+        1: "FD_fixed",
+        2: "FD_iter",
+        3: "SM",
+        4: "DR_imp",
+        5: "DR_leap",
+    }
+
+    structs = {
+        1: "Schek_2D",
+        2: "Schek_Modified",
+        3: "Veenendaal",
+        4: "Pauletti",
+        5: "CEE6501_2D",
+        6: "CEE6501_PointLoad",
+        7: "Star",
+    }
 
     run = FormFinder(
-        solver=solvers[0], structure=structs[3], debug=True, plot_save=True
+        solver=solvers[2], structure=structs[7], debug=True, plot_save=True
     )
 
     run.solve()

@@ -304,3 +304,63 @@ def create_force_matrix(L, L_0, E, A, F_0):
     F_diag = np.diag(F)
 
     return F_diag
+
+
+def create_L0_matrix(L, Q, E, A, F_0):
+    """
+    Calculate the initial length matrix L_0 from given diagonal matrices.
+
+    Equation
+    --------
+    L_0 = (EA * L) / (Q * L + EA - F_0)
+
+    Parameters
+    ----------
+    L   : np.ndarray
+        Diagonal square matrix of current member lengths.
+    Q   : np.ndarray
+        Diagonal square matrix of force densities.
+    E   : np.ndarray
+        Diagonal square matrix of Young's modulus values.
+    A   : np.ndarray
+        Diagonal square matrix of cross-sectional areas.
+    F_0 : np.ndarray
+        Diagonal square matrix of initial member forces.
+
+    Returns
+    -------
+    L_0 : np.ndarray
+        Diagonal square matrix of initial member lengths.
+    """
+    # Ensure inputs are diagonal matrices
+    if not (
+        np.allclose(L, np.diag(np.diag(L)))
+        and np.allclose(Q, np.diag(np.diag(Q)))
+        and np.allclose(E, np.diag(np.diag(E)))
+        and np.allclose(A, np.diag(np.diag(A)))
+        and np.allclose(F_0, np.diag(np.diag(F_0)))
+    ):
+        raise ValueError("All input matrices must be square and diagonal.")
+
+    # Extract diagonal elements as vectors
+    L_diag = np.diag(L)
+    Q_diag = np.diag(Q)
+    E_diag = np.diag(E)
+    A_diag = np.diag(A)
+    F_0_diag = np.diag(F_0)
+
+    # Compute initial length vector
+    numerator = E_diag * A_diag * L_diag
+    denominator = Q_diag * L_diag + E_diag * A_diag - F_0_diag
+
+    if np.any(np.isclose(denominator, 0.0)):
+        raise ValueError(
+            "Denominator contains zero entries; cannot compute L_0."
+        )
+
+    L_0 = numerator / denominator
+
+    # Return as diagonal matrix
+    L_0_diag = np.diag(L_0)
+
+    return L_0_diag
