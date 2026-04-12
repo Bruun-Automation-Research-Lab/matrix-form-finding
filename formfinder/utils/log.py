@@ -18,7 +18,7 @@ def print_table_1col(
     lines.append(f"{'':>2} | {f'{scale1} ×':>{col_width}}")
 
     for i, v1 in enumerate(c1, start=1):
-        lines.append(f"{i:02d} | {fmt.format(v1/scale1)}")
+        lines.append(f"{i:02d} | {fmt.format(v1 / scale1)}")
 
     return "\n".join(lines)
 
@@ -44,12 +44,16 @@ def print_table_2col(
     lines = []
     lines.append(f"{'':>2} | {name1:>{col_width}} | {name2:>{col_width}}")
     lines.append(
-        f"{'':>2} | {f'{scale1} ×':>{col_width}} | {f'{scale2} ×':>{col_width}}"
+        (
+            f"{'':>2} | "
+            f"{f'{scale1} ×':>{col_width}} | "
+            f"{f'{scale2} ×':>{col_width}}"
+        )
     )
 
     for i, (v1, v2) in enumerate(zip(c1, c2), start=1):
         lines.append(
-            f"{i:02d} | {fmt.format(v1/scale1)} | {fmt.format(v2/scale2)}"
+            f"{i:02d} | {fmt.format(v1 / scale1)} | {fmt.format(v2 / scale2)}"
         )
 
     return "\n".join(lines)
@@ -79,15 +83,31 @@ def print_table_3col(
 
     lines = []
     lines.append(
-        f"{'':>3} | {name1:>{col_width}} | {name2:>{col_width}} | {name3:>{col_width}}"
+        (
+            f"{'':>3} | "
+            f"{name1:>{col_width}} | "
+            f"{name2:>{col_width}} | "
+            f"{name3:>{col_width}}"
+        )
     )
+
     lines.append(
-        f"{'':>3} | {f'{scale1} ×':>{col_width}} | {f'{scale2} ×':>{col_width}} | {f'{scale3} ×':>{col_width}}"
+        (
+            f"{'':>3} | "
+            f"{f'{scale1} ×':>{col_width}} | "
+            f"{f'{scale2} ×':>{col_width}} | "
+            f"{f'{scale3} ×':>{col_width}}"
+        )
     )
 
     for i, (v1, v2, v3) in enumerate(zip(c1, c2, c3), start=1):
         lines.append(
-            f"{i:>3} | {fmt.format(v1/scale1)} | {fmt.format(v2/scale2)} | {fmt.format(v3/scale3)}"
+            (
+                f"{i:>3} | "
+                f"{fmt.format(v1 / scale1)} | "
+                f"{fmt.format(v2 / scale2)} | "
+                f"{fmt.format(v3 / scale3)}"
+            )
         )
 
     return "\n".join(lines)
@@ -125,15 +145,34 @@ def print_table_4col(
 
     lines = []
     lines.append(
-        f"{name0:>{index_width}}  | {name1:>{label_width}} | {name2:>{col_width}} | {name3:>{col_width}} | {name4:>{col_width}}"
+        (
+            f"{name0:>{index_width}}  | "
+            f"{name1:>{label_width}} | "
+            f"{name2:>{col_width}} | "
+            f"{name3:>{col_width}} | "
+            f"{name4:>{col_width}}"
+        )
     )
+
     lines.append(
-        f"{'':>{index_width}}  | {'':>{label_width}} | {f'{scale1} ×':>{col_width}} | {f'{scale2} ×':>{col_width}} | {f'{scale3} ×':>{col_width}}"
+        (
+            f"{'':>{index_width}}  | "
+            f"{'':>{label_width}} | "
+            f"{f'{scale1} ×':>{col_width}} | "
+            f"{f'{scale2} ×':>{col_width}} | "
+            f"{f'{scale3} ×':>{col_width}}"
+        )
     )
 
     for i, (label, v1, v2, v3) in enumerate(zip(labels, c1, c2, c3), start=1):
         lines.append(
-            f"{i:>3} | {int(label):>{label_width}d} | {fmt.format(v1/scale1)} | {fmt.format(v2/scale2)} | {fmt.format(v3/scale3)}"
+            (
+                f"{i:>3} | "
+                f"{int(label):>{label_width}d} | "
+                f"{fmt.format(v1 / scale1)} | "
+                f"{fmt.format(v2 / scale2)} | "
+                f"{fmt.format(v3 / scale3)}"
+            )
         )
 
     return "\n".join(lines)
@@ -158,7 +197,7 @@ def print_stiffness_mat(
         row_labels = np.asarray(row_labels).reshape(-1)
         if len(row_labels) != n_rows:
             raise ValueError(
-                "row_labels must have the same length as the number of rows in K."
+                "row_labels must have the same len as the num of rows in K."
             )
 
     if header_labels is None:
@@ -167,7 +206,7 @@ def print_stiffness_mat(
         header_labels = np.asarray(header_labels).reshape(-1)
         if len(header_labels) != n_cols:
             raise ValueError(
-                "header_labels must have the same length as the number of columns in K."
+                "header_labels must have same len as the num of columns in K."
             )
 
     fmt = f"{{:>{col_width}.{decimals}f}}"
@@ -213,7 +252,7 @@ def print_connectivity_mat(
         header_labels = np.asarray(header_labels).reshape(-1)
         if len(header_labels) != C.shape[1]:
             raise ValueError(
-                "header_labels must have the same length as the number of columns in C."
+                "header_labels must have the same len as the num of cols in C."
             )
 
     lines = [f"{name} ="]
