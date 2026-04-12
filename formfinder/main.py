@@ -6,13 +6,14 @@ import utils.solver as hs
 import utils.matrix as hm
 import utils.plot as hp
 
-from structures.struct_2 import generate_struct
+from structures.struct_1 import generate_struct
 
 
 class FormFinder:
-    def __init__(self, solver="FD_fixed", debug=False):
+    def __init__(self, solver="FD_fixed", debug=False, plot_save=False):
         self.solver = solver
         self.debug = debug
+        self.plot_save = plot_save
 
         # base output prefix
         self.out_path = f"./output/{self.solver}"
@@ -33,7 +34,7 @@ class FormFinder:
             self.n_l,
             self.n_f,
             plot_text=True,
-            save=True,
+            save=self.plot_save,
             path=f"{self.out_path}_start.png",
         )
 
@@ -461,8 +462,8 @@ class FormFinder:
                 q2,
                 KE_q,
                 t=self.iteration,
-                save=True,
-                path=f"{self.out_path}_interpolation.png",
+                save=self.plot_save,
+                path=f"{self.out_path}_interp_{self.iteration}.png",
             )
 
             q = q1
@@ -498,7 +499,7 @@ class FormFinder:
         hp.plot_kinetic_energy(
             self.KE_history,
             self.solver,
-            save=True,
+            save=self.plot_save,
             path=f"{self.out_path}_kinetic_energy.png",
         )
 
@@ -509,7 +510,7 @@ class FormFinder:
             t=200,
             z_scale=1.0,
             plot_text=False,
-            save=True,
+            save=self.plot_save,
             path=f"{self.out_path}_animation.gif",
         )
 
@@ -519,7 +520,7 @@ class FormFinder:
             self.n_l,
             self.n_f,
             plot_text=True,
-            save=True,
+            save=self.plot_save,
             path=f"{self.out_path}_final.png",
         )
 
@@ -533,10 +534,10 @@ class FormFinder:
 
 
 if __name__ == "__main__":
-    simulation = FormFinder(solver="FD_fixed", debug=True)
-    # simulation = FormFinder(solver="FD_iter", debug=False)
-    # simulation = FormFinder(solver="SM", debug=False)
-    # simulation = FormFinder(solver="DR_imp", debug=False)
-    # simulation = FormFinder(solver="DR_leap", debug=False)
+    run = FormFinder(solver="FD_fixed", debug=True, plot_save=True)
+    # run = FormFinder(solver="FD_iter", debug=False, plot_save=True)
+    # run = FormFinder(solver="SM", debug=False, plot_save=True)
+    # run = FormFinder(solver="DR_imp", debug=False, plot_save=True)
+    # run = FormFinder(solver="DR_leap", debug=False, plot_save=True)
 
-    simulation.solve()
+    run.solve()
