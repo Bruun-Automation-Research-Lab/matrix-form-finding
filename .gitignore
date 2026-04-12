@@ -8,6 +8,8 @@
 *.gif
 .DS_Store
 debug/*.txt
+output/*.gif
+output/*.png
 
 # ======================
 # Python Bytecode Files

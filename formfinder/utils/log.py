@@ -93,7 +93,7 @@ def print_table_3col(
     return "\n".join(lines)
 
 
-def print_table_4col_labeled(
+def print_table_4col(
     labels,
     c1,
     c2,
@@ -221,7 +221,7 @@ def print_connectivity_mat(
     # First header row: regular numbering
     header_num = "    | " + " ".join(
         f"{j:>{col_width}}"
-        for j in [f"{k:02d}" for k in range(1, C.shape[1] + 1)]
+        for j in [f"{k:0d}" for k in range(1, C.shape[1] + 1)]
     )
     lines.append(header_num)
 
@@ -274,7 +274,7 @@ def debug_struct_input(n, e, e_l, n_l, n_f):
     log.debug("")
     log.debug("#-------------------------------------------")
     log.debug("NODES")
-    log.debug("[nx3]")
+    log.debug("[n x 3]")
     log.debug(
         "%s",
         print_table_3col(
@@ -292,7 +292,7 @@ def debug_struct_input(n, e, e_l, n_l, n_f):
     log.debug("")
     log.debug("#-------------------------------------------")
     log.debug("ELEMENTS")
-    log.debug("[m]")
+    log.debug("[m x 2] & [m x 1]")
     log.debug(
         "%s",
         print_table_3col(
@@ -311,7 +311,7 @@ def debug_struct_input(n, e, e_l, n_l, n_f):
     log.debug("")
     log.debug("#-------------------------------------------")
     log.debug("NODAL LOADS")
-    log.debug("[nx3]")
+    log.debug("[n x 3]")
     log.debug(
         "%s",
         print_table_3col(
@@ -329,8 +329,8 @@ def debug_struct_input(n, e, e_l, n_l, n_f):
     log.debug("")
     log.debug("#-------------------------------------------")
     log.debug("NODAL FIXITY")
-    log.debug("[nx1]")
-    log.debug("1=fixed")
+    log.debug("[n x 1]")
+    log.debug("1 = fixed | 0 = free")
     log.debug(
         "%s",
         print_table_1col(
@@ -357,7 +357,7 @@ def debug_struct_matrices(C_total, C, C_f, p_x, p_y, p_z, n_f):
     log.debug("[n_free x 1]")
     log.debug(
         "%s",
-        print_table_4col_labeled(
+        print_table_4col(
             labels_free,
             p_x,
             p_y,
@@ -671,7 +671,7 @@ def debug_deltas(d_x, d_y, d_z, n_f, scale=1):
 
     log.debug(
         "%s",
-        print_table_4col_labeled(
+        print_table_4col(
             labels,
             d_x,
             d_y,
@@ -718,7 +718,7 @@ def debug_velocity_kinetic_energy(v_x, v_y, v_z, n_f, KE):
 
     log.debug(
         "%s",
-        print_table_4col_labeled(
+        print_table_4col(
             labels,
             v_x,
             v_y,
@@ -746,6 +746,7 @@ def debug_energy_peak(q):
 def debug_error(L_total, error):
     log.debug("")
     log.debug("#-------------------------------------------")
+    log.debug("ITERATION RESULTS")
     log.debug(f"Total Len = {L_total:.3f}")
     log.debug(f"Max error = {error:.3f}")
 

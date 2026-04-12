@@ -11,31 +11,45 @@ def plot_network_views(
     nodes_loads,
     nodes_fixed,
     plot_text=False,
+    save=False,
+    path="./output/network_views.png",
 ):
     """
-    Create a four-view plot: one large 3D view and 3 small 2D projections.
+    Create a four-view plot: one large 3D view and three small 2D projections.
+
+    Parameters
+    ----------
+    nodes : ndarray
+        Node coordinates, shape (n_nodes, 3).
+    elements : ndarray
+        Element connectivity, assumed 1-based indexing, shape (n_elements, 2).
+    nodes_loads : ndarray
+        Nodal loads, shape (n_nodes, ?).
+    nodes_fixed : array-like
+        Boolean or int mask indicating fixed nodes.
+    plot_text : bool, optional
+        If True, plot node and element numbers.
+    save : bool, optional
+        If True, save the figure to `path`.
+    path : str, optional
+        File path for saving the figure.
     """
     fig = plt.figure(figsize=(12, 6))
     gs = fig.add_gridspec(3, 2, width_ratios=[2, 1], height_ratios=[3, 1, 1])
 
-    text_offset = 0.07  # Adjust this value if necessary
+    text_offset = 0.07
 
     # 3D plot
     ax = fig.add_subplot(gs[:, 0], projection="3d")
 
-    text_offset = 0.07  # Adjust this value if necessary
-
     # Plot elements with numbers
-    for i, (n1, n2) in enumerate(
-        elements - 1
-    ):  # Convert 1-based to 0-based indexing
+    for i, (n1, n2) in enumerate(elements - 1):  # convert 1-based to 0-based
         x_vals = [nodes[n1, 0], nodes[n2, 0]]
         y_vals = [nodes[n1, 1], nodes[n2, 1]]
         z_vals = [nodes[n1, 2], nodes[n2, 2]]
         ax.plot(x_vals, y_vals, z_vals, "k-", alpha=0.8)
 
         if plot_text:
-            # Compute midpoint for element numbering
             mid_x = (nodes[n1, 0] + nodes[n2, 0]) / 2
             mid_y = (nodes[n1, 1] + nodes[n2, 1]) / 2
             mid_z = (nodes[n1, 2] + nodes[n2, 2]) / 2
@@ -46,55 +60,54 @@ def plot_network_views(
                 str(i + 1),
                 color="green",
                 fontsize=7,
-            )  # Offset element number slightly
+            )
 
-    # Plot nodes with numbers
+    # Plot nodes
     for i, (x, y, z) in enumerate(nodes):
-        if nodes_fixed[i]:  # Fixed node
+        if nodes_fixed[i]:
             ax.scatter(x, y, z, color="blue", s=20)
-        elif np.any(nodes_loads[i] != 0):  # Loaded node
+        elif np.any(nodes_loads[i] != 0):
             ax.scatter(x, y, z, color="red", s=30)
-        else:  # Normal node
+        else:
             ax.scatter(x, y, z, color="black", s=10)
 
     if plot_text:
         for i, (x, y, z) in enumerate(nodes):
-            if nodes_fixed[i]:  # Fixed node
+            if nodes_fixed[i]:
                 ax.text(
                     x + text_offset,
                     y + text_offset,
                     z + text_offset,
                     str(i + 1),
-                    color="blue",  # Blue text for fixed nodes
+                    color="blue",
                     fontsize=7,
-                    weight="bold",  # Bold text for fixed nodes
+                    weight="bold",
                 )
-            elif np.any(nodes_loads[i] != 0):  # Loaded node
+            elif np.any(nodes_loads[i] != 0):
                 ax.text(
                     x + text_offset,
                     y + text_offset,
                     z + text_offset,
                     str(i + 1),
-                    color="red",  # Red text for loaded nodes
+                    color="red",
                     fontsize=7,
-                    weight="bold",  # Bold text for loaded nodes
+                    weight="bold",
                 )
-            else:  # Normal node
+            else:
                 ax.text(
                     x + text_offset,
                     y + text_offset,
                     z + text_offset,
                     str(i + 1),
-                    color="black",  # Normal black text
+                    color="black",
                     fontsize=7,
                 )
 
-    # Calculate axis limits based on the node locations
+    # Axis limits
     x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
     y_min, y_max = np.min(nodes[:, 1]), np.max(nodes[:, 1])
     z_min, z_max = np.min(nodes[:, 2]), np.max(nodes[:, 2])
 
-    # Set axis limits with a minimum of -1 and 1
     ax.set_xlim([min(x_min - 1, -1), max(x_max + 1, 1)])
     ax.set_ylim([min(y_min - 1, -1), max(y_max + 1, 1)])
     ax.set_zlim([min(z_min - 1, -1), max(z_max + 1, 1)])
@@ -106,8 +119,8 @@ def plot_network_views(
     # XY-plane
     ax_xy = fig.add_subplot(gs[0, 1])
     for n1, n2 in elements:
-        x_vals = [nodes[n1 - 1][0], nodes[n2 - 1][0]]  # Adjust for 1-indexing
-        y_vals = [nodes[n1 - 1][1], nodes[n2 - 1][1]]  # Adjust for 1-indexing
+        x_vals = [nodes[n1 - 1, 0], nodes[n2 - 1, 0]]
+        y_vals = [nodes[n1 - 1, 1], nodes[n2 - 1, 1]]
         ax_xy.plot(x_vals, y_vals, "k-")
     ax_xy.set_xlabel("X")
     ax_xy.set_ylabel("Y")
@@ -117,8 +130,8 @@ def plot_network_views(
     # XZ-plane
     ax_xz = fig.add_subplot(gs[1, 1])
     for n1, n2 in elements:
-        x_vals = [nodes[n1 - 1][0], nodes[n2 - 1][0]]  # Adjust for 1-indexing
-        z_vals = [nodes[n1 - 1][2], nodes[n2 - 1][2]]  # Adjust for 1-indexing
+        x_vals = [nodes[n1 - 1, 0], nodes[n2 - 1, 0]]
+        z_vals = [nodes[n1 - 1, 2], nodes[n2 - 1, 2]]
         ax_xz.plot(x_vals, z_vals, "k-")
     ax_xz.set_xlabel("X")
     ax_xz.set_ylabel("Z")
@@ -128,8 +141,8 @@ def plot_network_views(
     # YZ-plane
     ax_yz = fig.add_subplot(gs[2, 1])
     for n1, n2 in elements:
-        y_vals = [nodes[n1 - 1][1], nodes[n2 - 1][1]]  # Adjust for 1-indexing
-        z_vals = [nodes[n1 - 1][2], nodes[n2 - 1][2]]  # Adjust for 1-indexing
+        y_vals = [nodes[n1 - 1, 1], nodes[n2 - 1, 1]]
+        z_vals = [nodes[n1 - 1, 2], nodes[n2 - 1, 2]]
         ax_yz.plot(y_vals, z_vals, "k-")
     ax_yz.set_xlabel("Y")
     ax_yz.set_ylabel("Z")
@@ -137,6 +150,10 @@ def plot_network_views(
     ax_yz.set_aspect("equal")
 
     plt.tight_layout()
+
+    if save:
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+
     plt.show()
 
 
@@ -145,11 +162,11 @@ def plot_animation(
     e,
     n_f,
     t=50,
-    plot_text=False,
-    output_path="animation.gif",
-    save_gif=False,
-    frame_step=1,
     z_scale=1,
+    frame_step=1,
+    plot_text=False,
+    save=False,
+    path="./output/animation.gif",
 ):
     node_positions = np.asarray(node_positions, dtype=float)
     elements = np.asarray(e, dtype=int) - 1  # convert 1-based to 0-based once
@@ -313,145 +330,19 @@ def plot_animation(
         repeat=True,
     )
 
-    if save_gif:
-        anim.save(output_path, writer="pillow")
+    if save:
+        anim.save(path, writer="pillow")
 
     plt.show()
     return anim
 
 
-# def plot_network_animated(
-#     ax, nodes, elements, fixed_nodes, iteration, plot_text
-# ):
-#     ax.cla()  # Clear the axes
-
-#     text_offset = 0.05  # Offset for labels to avoid overlap
-
-#     # Extract x, y, z coordinates from the nodes array
-#     x_vals, y_vals, z_vals = nodes[:, 0], nodes[:, 1], nodes[:, 2]
-
-#     # Plot nodes
-#     ax.scatter(
-#         x_vals, y_vals, z_vals, c="black", marker="o", s=10, label="Nodes"
-#     )
-
-#     # Highlight fixed nodes in blue
-#     fixed_mask = (
-#         fixed_nodes.flatten() == 1
-#     )  # Assuming fixed_nodes is a 1D array with 0/1 values
-#     ax.scatter(
-#         x_vals[fixed_mask],
-#         y_vals[fixed_mask],
-#         z_vals[fixed_mask],
-#         c="blue",
-#         marker="o",
-#         s=30,
-#         label="Fixed Nodes",
-#     )
-
-#     # Plot elements with numbering
-#     for i, (start, end) in enumerate(
-#         elements - 1
-#     ):  # Convert 1-based to 0-based indexing
-#         x_start, y_start, z_start = nodes[start]
-#         x_end, y_end, z_end = nodes[end]
-#         ax.plot(
-#             [x_start, x_end],
-#             [y_start, y_end],
-#             [z_start, z_end],
-#             c="green",
-#             linestyle="-",
-#             linewidth=1,
-#         )
-
-#         if plot_text:
-#             # Compute midpoint for element numbering
-#             mid_x = (x_start + x_end) / 2
-#             mid_y = (y_start + y_end) / 2
-#             mid_z = (z_start + z_end) / 2
-#             ax.text(
-#                 mid_x + text_offset,
-#                 mid_y + text_offset,
-#                 mid_z + text_offset,
-#                 str(i + 1),
-#                 color="green",
-#                 fontsize=7,
-#             )  # Element number
-
-#     if plot_text:
-#         # Plot node numbers
-#         for i, (x, y, z) in enumerate(nodes):
-#             if fixed_nodes[i] == 1:  # Fixed node
-#                 ax.text(
-#                     x + text_offset,
-#                     y + text_offset,
-#                     z + text_offset,
-#                     str(i + 1),
-#                     color="blue",  # Blue text for fixed nodes
-#                     fontsize=7,
-#                     weight="bold",  # Bold text for fixed nodes
-#                 )
-#             else:  # Normal node
-#                 ax.text(
-#                     x + text_offset,
-#                     y + text_offset,
-#                     z + text_offset,
-#                     str(i + 1),
-#                     color="black",  # Normal black text
-#                     fontsize=7,
-#                 )
-
-#     # Calculate axis limits based on the node locations
-#     x_min, x_max = np.min(nodes[:, 0]), np.max(nodes[:, 0])
-#     y_min, y_max = np.min(nodes[:, 1]), np.max(nodes[:, 1])
-#     z_min, z_max = np.min(nodes[:, 2]), np.max(nodes[:, 2])
-
-#     # Set axis limits with a minimum of -1 and 1
-#     ax.set_xlim([min(x_min, -1), max(x_max, 1)])
-#     ax.set_ylim([min(y_min, -1), max(y_max, 1)])
-#     ax.set_zlim([min(z_min, -1), max(z_max, 1)])
-
-#     # Set labels and title
-#     ax.set_xlabel("X")
-#     ax.set_ylabel("Y")
-#     ax.set_zlabel("Z")
-#     ax.set_title(
-#         f"Iteration {iteration}"
-#     )  # Show iteration number in the title
-#     ax.legend()
-
-
-# def plot_animation(
-#     node_positions,
-#     e,
-#     n_f,
-#     t=1,
-#     plot_text=False,
-#     output_path="animation.gif",
-#     save_gif="False",
-# ):
-#     # Animation update function
-#     def update(frame):
-#         plot_network_animated(
-#             ax, node_positions[frame], e, n_f, frame, plot_text
-#         )
-
-#     # Create the animation
-#     fig = plt.figure()
-#     ax = fig.add_subplot(111, projection="3d")
-
-#     anim = animation.FuncAnimation(
-#         fig, update, frames=len(node_positions), interval=t
-#     )
-
-#     # Save the animation as a GIF
-#     if save_gif:
-#         anim.save(output_path, writer="pillow")
-
-#     plt.show()
-
-
-def plot_kinetic_energy(KE, solver):
+def plot_kinetic_energy(
+    KE,
+    solver,
+    save=False,
+    path="./output/kinetic_energy.png",
+):
 
     if solver in ["DR_imp", "DR_leap"]:
         # Create a figure with 1 row and 2 columns
@@ -486,10 +377,25 @@ def plot_kinetic_energy(KE, solver):
 
         # Show the plots side by side
         plt.tight_layout()
+
+        if save:
+            plt.savefig(path, dpi=300, bbox_inches="tight")
+
         plt.show()
 
 
-def plot_quadratic_interp(x, y, x_interp, y_interp, q1, q2, KE_q, t=0):
+def plot_quadratic_interp(
+    x,
+    y,
+    x_interp,
+    y_interp,
+    q1,
+    q2,
+    KE_q,
+    t=0,
+    save=False,
+    path="./output/quadratic_interp.png",
+):
 
     # Determine max limits considering both series
     x_all = np.concatenate((x, x_interp))
@@ -578,4 +484,8 @@ def plot_quadratic_interp(x, y, x_interp, y_interp, q1, q2, KE_q, t=0):
     plt.legend()
 
     plt.grid(True)
+
+    if save:
+        plt.savefig(path, dpi=300, bbox_inches="tight")
+
     plt.show()

@@ -6,13 +6,17 @@ import utils.solver as hs
 import utils.matrix as hm
 import utils.plot as hp
 
-from structures.struct_3 import generate_struct
+from structures.struct_2 import generate_struct
 
 
 class FormFinder:
     def __init__(self, solver="FD_fixed", debug=False):
         self.solver = solver
         self.debug = debug
+
+        # base output prefix
+        self.out_path = f"./output/{self.solver}"
+
         hl.setup_logging(debug, solver)
 
         # Initialize structure, turn dicts --> arrays
@@ -24,7 +28,13 @@ class FormFinder:
             hl.debug_struct_input(self.n, self.e, self.e_l, self.n_l, self.n_f)
 
         hp.plot_network_views(
-            self.n, self.e, self.n_l, self.n_f, plot_text=True
+            self.n,
+            self.e,
+            self.n_l,
+            self.n_f,
+            plot_text=True,
+            save=True,
+            path=f"{self.out_path}_start.png",
         )
 
         self.initialize()
@@ -32,6 +42,7 @@ class FormFinder:
     def initialize(self):
         """Initialize structural matrices and parameters."""
 
+        self.iteration = 0
         self.TOL = 1e-3
         self.MAX_ITER = 100
 
@@ -64,7 +75,7 @@ class FormFinder:
             )
 
         # ------------------------------------
-        #  Stacks for 3m x 3n operations
+        #  Stacks for 3m x 3n SM operations
         # ------------------------------------
         self.C_i_3mn = hm.create_triple_stack(self.C_i)  # 3m x 3n (diagonal)
         self.C_f_3mn = hm.create_triple_stack(self.C_f)  # 3m x 3n (diagonal)
@@ -75,7 +86,7 @@ class FormFinder:
         #  Recorders
         # ------------------------------------
         self.node_pos_hist = [self.n.copy()]  # Store initial position
-        self.L_total_hist = [np.sum(self.L_vec**2)]
+        self.L_total_hist = [np.sum(self.L_vec**2)]  # Init starting lens
         self.F_hist = []
         self.Q_hist = []
 
@@ -111,9 +122,9 @@ class FormFinder:
     def solve(self):
         """Main loop for form finding."""
 
-        for iteration in range(self.MAX_ITER):
+        for self.iteration in range(self.MAX_ITER):
             if self.debug:
-                hl.debug_iteration(iteration, self.solver)
+                hl.debug_iteration(self.iteration, self.solver)
 
             if self.solver == "FD_fixed":
                 self.fd_fixed_solver()
@@ -143,7 +154,7 @@ class FormFinder:
                 error = np.abs(self.L_total_hist[-2] - self.L_total_hist[-1])
 
                 print(
-                    f"Iteration {iteration}: "
+                    f"Iteration {self.iteration}: "
                     f"Total Len = {self.L_total_hist[-1]:.3f}, "
                     f"Max error = {error:.3e}"
                 )
@@ -227,6 +238,7 @@ class FormFinder:
         )
         if self.debug:
             hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+
         self.KE_history = [0]  # dont use in FD
 
     def sm_solver(self):
@@ -285,6 +297,7 @@ class FormFinder:
 
         if self.debug:
             hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
+
         self.KE_history = [0]  # dont use in SM
 
     def dr_implicit_solver(self):
@@ -435,20 +448,22 @@ class FormFinder:
                 (self.KE_prev - KE) - (self.KE_prev2 - self.KE_prev)
             )
 
-            # # this is same interp, different interval than the paper
-            # q2, KE_q, x_interp, y_interp = hs.quadratic_interp(
-            #     [KE_prev2, KE_prev, KE]
-            # )
-            # hp.plot_quadratic_interp(
-            #     [0, 0.5, 1.0],
-            #     [KE_prev2, KE_prev, KE],
-            #     x_interp,
-            #     y_interp,
-            #     q1,
-            #     q2,
-            #     KE_q,
-            #     t=iteration,
-            # )
+            # this is same interp, different interval than the paper
+            q2, KE_q, x_interp, y_interp = hs.quadratic_interp(
+                [self.KE_prev2, self.KE_prev, KE]
+            )
+            hp.plot_quadratic_interp(
+                [0, 0.5, 1.0],
+                [self.KE_prev2, self.KE_prev, KE],
+                x_interp,
+                y_interp,
+                q1,
+                q2,
+                KE_q,
+                t=self.iteration,
+                save=True,
+                path=f"{self.out_path}_interpolation.png",
+            )
 
             q = q1
 
@@ -480,18 +495,32 @@ class FormFinder:
 
     def post_process(self):
         """Final visualization and debugging."""
-        hp.plot_kinetic_energy(self.KE_history, self.solver)
+        hp.plot_kinetic_energy(
+            self.KE_history,
+            self.solver,
+            save=True,
+            path=f"{self.out_path}_kinetic_energy.png",
+        )
+
         hp.plot_animation(
             self.node_pos_hist,
             self.e,
             self.n_f,
             t=200,
+            z_scale=1.0,
             plot_text=False,
-            save_gif=True,
-            z_scale=2,
+            save=True,
+            path=f"{self.out_path}_animation.gif",
         )
+
         hp.plot_network_views(
-            self.n, self.e, self.n_l, self.n_f, plot_text=True
+            self.n,
+            self.e,
+            self.n_l,
+            self.n_f,
+            plot_text=True,
+            save=True,
+            path=f"{self.out_path}_final.png",
         )
 
         if self.debug:
@@ -504,10 +533,10 @@ class FormFinder:
 
 
 if __name__ == "__main__":
-    # simulation = FormFinder(solver="FD_fixed", debug=False)
+    simulation = FormFinder(solver="FD_fixed", debug=True)
     # simulation = FormFinder(solver="FD_iter", debug=False)
     # simulation = FormFinder(solver="SM", debug=False)
-    simulation = FormFinder(solver="DR_imp", debug=False)
+    # simulation = FormFinder(solver="DR_imp", debug=False)
     # simulation = FormFinder(solver="DR_leap", debug=False)
 
     simulation.solve()
