@@ -1,3 +1,4 @@
+import importlib
 import numpy as np
 import scipy
 
@@ -6,12 +7,19 @@ import utils.solver as hs
 import utils.matrix as hm
 import utils.plot as hp
 
-from structures.struct_1 import generate_struct
+# from formfinder.structures.struct_1a import generate_struct
 
 
 class FormFinder:
-    def __init__(self, solver="FD_fixed", debug=False, plot_save=False):
+    def __init__(
+        self,
+        solver="FD_fixed",
+        structure="struct_1a",
+        debug=False,
+        plot_save=False,
+    ):
         self.solver = solver
+        self.structure = structure
         self.debug = debug
         self.plot_save = plot_save
 
@@ -20,9 +28,12 @@ class FormFinder:
 
         hl.setup_logging(debug, solver)
 
+        # dynamically import selected structure module
+        struct_module = importlib.import_module(f"structures.{self.structure}")
+
         # Initialize structure, turn dicts --> arrays
         self.n, self.e, self.e_l, self.n_l, self.n_f = (
-            hm.generate_struct_arrays(*generate_struct())
+            hm.generate_struct_arrays(*struct_module.generate_struct())
         )
 
         if self.debug:
@@ -534,10 +545,12 @@ class FormFinder:
 
 
 if __name__ == "__main__":
-    run = FormFinder(solver="FD_fixed", debug=True, plot_save=True)
-    # run = FormFinder(solver="FD_iter", debug=False, plot_save=True)
-    # run = FormFinder(solver="SM", debug=False, plot_save=True)
-    # run = FormFinder(solver="DR_imp", debug=False, plot_save=True)
-    # run = FormFinder(solver="DR_leap", debug=False, plot_save=True)
+
+    solvers = ["FD_fixed", "FD_iter", "SM", "DR_imp", "DR_leap"]
+    structs = ["struct_1a", "struct_1b", "struct_2", "struct_3", "struct_4"]
+
+    run = FormFinder(
+        solver=solvers[0], structure=structs[3], debug=True, plot_save=True
+    )
 
     run.solve()

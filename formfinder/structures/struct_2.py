@@ -1,10 +1,16 @@
-# "A Framework for Comparing Form Finding Methods" Structure
-
-import numpy as np
+# -----------------------------------------------------------------------------
+# Example input file
+# Validation structure from Block and Veenendaal (2011)
+# "A Framework for Comparing Form Finding Methods"
+# -----------------------------------------------------------------------------
 
 
 def generate_struct():
-    # Example usage
+    # -------------------------------------------------------------------------
+    # Node coordinates
+    # 5 x 5 grid of nodes with prescribed initial z-values.
+    # Boundary nodes are fixed, while the interior nodes are free.
+    # -------------------------------------------------------------------------
     nodes = {
         1: (0.0, 0.0, -4.0),
         2: (0.0, 2.5, -2.0),
@@ -33,6 +39,11 @@ def generate_struct():
         25: (10.0, 10.0, -4.0),
     }
 
+    # -------------------------------------------------------------------------
+    # Element connectivity
+    # Format: {element_id: (start_node, end_node)}
+    # Elements connect the orthogonal grid in the x and y directions.
+    # -------------------------------------------------------------------------
     elements = {
         1: (1, 6),
         2: (1, 2),
@@ -76,50 +87,59 @@ def generate_struct():
         40: (24, 25),
     }
 
+    # -------------------------------------------------------------------------
+    # Initial element preload / force-density values
+    # In FD_linear, this is the prescribed q value for each element.
+    # -------------------------------------------------------------------------
     elements_preload = {
-        1: 1,
-        2: 1,
-        3: 1,
-        4: 1,
-        5: 1,
-        6: 1,
-        7: 1,
-        8: 1,
-        9: 1,
-        10: 1,
-        11: 1,
-        12: 1,
-        13: 1,
-        14: 1,
-        15: 1,
-        16: 1,
-        17: 1,
-        18: 1,
-        19: 1,
-        20: 1,
-        21: 1,
-        22: 1,
-        23: 1,
-        24: 1,
-        25: 1,
-        26: 1,
-        27: 1,
-        28: 1,
-        29: 1,
-        30: 1,
-        31: 1,
-        32: 1,
-        33: 1,
-        34: 1,
-        35: 1,
-        36: 1,
-        37: 1,
-        38: 1,
-        39: 1,
-        40: 1,
+        1: 1.0,
+        2: 1.0,
+        3: 1.0,
+        4: 1.0,
+        5: 1.0,
+        6: 1.0,
+        7: 1.0,
+        8: 1.0,
+        9: 1.0,
+        10: 1.0,
+        11: 1.0,
+        12: 1.0,
+        13: 1.0,
+        14: 1.0,
+        15: 1.0,
+        16: 1.0,
+        17: 1.0,
+        18: 1.0,
+        19: 1.0,
+        20: 1.0,
+        21: 1.0,
+        22: 1.0,
+        23: 1.0,
+        24: 1.0,
+        25: 1.0,
+        26: 1.0,
+        27: 1.0,
+        28: 1.0,
+        29: 1.0,
+        30: 1.0,
+        31: 1.0,
+        32: 1.0,
+        33: 1.0,
+        34: 1.0,
+        35: 1.0,
+        36: 1.0,
+        37: 1.0,
+        38: 1.0,
+        39: 1.0,
+        40: 1.0,
     }
 
-    nodes_load = {
+    # -------------------------------------------------------------------------
+    # Applied nodal loads
+    # Format: {node_id: (Fx, Fy, Fz)}
+    # No external nodal loads are applied in this example.
+    # -------------------------------------------------------------------------
+    nodes_loads = {
         1: (0.0, 0.0, 0.0),
         2: (0.0, 0.0, 0.0),
         3: (0.0, 0.0, 0.0),
@@ -147,6 +167,14 @@ def generate_struct():
         25: (0.0, 0.0, 0.0),
     }
 
+    # -------------------------------------------------------------------------
+    # Boundary conditions
+    # 0 = free
+    # 1 = fixed
+    # Outer boundary nodes are fixed.
+    # Interior 3 x 3 nodes are free
+    # according to the original validation setup.
+    # -------------------------------------------------------------------------
     nodes_fixed = {
         1: 1,
         2: 1,
@@ -175,4 +203,4 @@ def generate_struct():
         25: 1,
     }
 
-    return nodes, elements, elements_preload, nodes_load, nodes_fixed
+    return nodes, elements, elements_preload, nodes_loads, nodes_fixed
