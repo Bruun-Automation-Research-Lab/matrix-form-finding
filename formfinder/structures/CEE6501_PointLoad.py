@@ -36,8 +36,8 @@ def generate_struct(rows=8, cols=10, spacing=1.0):
     # at node 17.
     # -------------------------------------------------------------------------
     nodes_loads = {node_id: (0.0, 0.0, 0.0) for node_id in nodes}
-    nodes_loads[17] = (1.0, 0.0, -10.0)
-    nodes_loads[53] = (-1.0, 0.0, -10.0)
+    nodes_loads[17] = (2.0, 0.0, -10.0)
+    nodes_loads[53] = (2.0, 0.0, -10.0)
 
     # -------------------------------------------------------------------------
     # Boundary conditions

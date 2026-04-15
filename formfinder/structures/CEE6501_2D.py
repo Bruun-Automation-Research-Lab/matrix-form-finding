@@ -168,7 +168,7 @@ def generate_struct():
     # In FD_linear, this is the prescribed q value for each element.
     # -------------------------------------------------------------------------
     q_exterior = 1.0
-    q_interior = 1.0
+    q_interior = 5.0
 
     exterior_nodes = {
         1,

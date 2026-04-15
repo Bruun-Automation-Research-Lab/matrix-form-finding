@@ -1,19 +1,19 @@
-# Matrix Structural Analysis
+# Matrix Form Finding
 
 ## Environment Setup
 
 ```zsh
-conda env remove --name matrix_formfind
+conda env create -f environment.yml
+conda activate CEE6501-student
 ```
 
 ```zsh
-conda env create -f environment.yml
-conda activate matrix_formfind
+conda env remove --name CEE6501-student
 ```
 
 ```zsh
 conda env create -f environment_jupyter.yml
-conda activate CEE6501_jupyter
+conda activate CEE6501-student
 ```
 
 ```zsh

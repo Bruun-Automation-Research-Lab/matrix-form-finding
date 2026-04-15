@@ -12,7 +12,7 @@ class FormFinder:
     def __init__(
         self,
         solver="FD_fixed",
-        structure="struct_1a",
+        structure="Schek_2D",
         debug=False,
         plot_save=False,
     ):
@@ -147,8 +147,8 @@ class FormFinder:
             if self.debug:
                 hl.debug_iteration(self.iteration, self.solver)
 
-            if self.solver == "FD_fixed":
-                self.fd_fixed_solver()
+            if self.solver == "FD_linear":
+                self.fd_linear_solver()
             elif self.solver == "FD_iter":
                 self.fd_iter_solver()
             elif self.solver == "SM":
@@ -197,7 +197,7 @@ class FormFinder:
 
         self.post_process()
 
-    def fd_fixed_solver(self):
+    def fd_linear_solver(self):
         """Force Density (FD) solver with fixed Q."""
         Q = np.diag(self.e_l.flatten())
         F = Q @ self.L
@@ -257,6 +257,7 @@ class FormFinder:
             D_f,
             *hm.partition_nodes_coordinates(self.n, self.n_f),
         )
+
         if self.debug:
             hl.debug_deltas(self.d_x, self.d_y, self.d_z, self.n_f)
 
@@ -551,7 +552,7 @@ class FormFinder:
             self.e,
             self.n_l,
             self.n_f,
-            plot_text=True,
+            plot_text=False,
             save=self.plot_save,
             path=f"{self.out_path}_final.png",
         )
@@ -568,7 +569,7 @@ class FormFinder:
 if __name__ == "__main__":
 
     solvers = {
-        1: "FD_fixed",
+        1: "FD_linear",
         2: "FD_iter",
         3: "SM",
         4: "DR_imp",
@@ -586,7 +587,7 @@ if __name__ == "__main__":
     }
 
     run = FormFinder(
-        solver=solvers[2], structure=structs[7], debug=True, plot_save=True
+        solver=solvers[1], structure=structs[3], debug=True, plot_save=True
     )
 
     run.solve()

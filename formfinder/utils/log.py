@@ -14,11 +14,11 @@ def print_table_1col(
     fmt = f"{{:>{col_width}.{decimals}f}}"
 
     lines = []
-    lines.append(f"{'':>2} | {name1:>{col_width}}")
-    lines.append(f"{'':>2} | {f'{scale1} ×':>{col_width}}")
+    lines.append(f"{'':>2}  | {name1:>{col_width}}")
+    lines.append(f"{'':>2}  | {f'{scale1} x':>{col_width}}")
 
     for i, v1 in enumerate(c1, start=1):
-        lines.append(f"{i:02d} | {fmt.format(v1 / scale1)}")
+        lines.append(f"{i:>3} | {fmt.format(v1 / scale1)}")
 
     return "\n".join(lines)
 
@@ -46,14 +46,14 @@ def print_table_2col(
     lines.append(
         (
             f"{'':>2} | "
-            f"{f'{scale1} ×':>{col_width}} | "
-            f"{f'{scale2} ×':>{col_width}}"
+            f"{f'{scale1} x':>{col_width}} | "
+            f"{f'{scale2} x':>{col_width}}"
         )
     )
 
     for i, (v1, v2) in enumerate(zip(c1, c2), start=1):
         lines.append(
-            f"{i:02d} | {fmt.format(v1 / scale1)} | {fmt.format(v2 / scale2)}"
+            f"{i:>3} | {fmt.format(v1 / scale1)} | {fmt.format(v2 / scale2)}"
         )
 
     return "\n".join(lines)
@@ -94,9 +94,9 @@ def print_table_3col(
     lines.append(
         (
             f"{'':>3} | "
-            f"{f'{scale1} ×':>{col_width}} | "
-            f"{f'{scale2} ×':>{col_width}} | "
-            f"{f'{scale3} ×':>{col_width}}"
+            f"{f'{scale1} x':>{col_width}} | "
+            f"{f'{scale2} x':>{col_width}} | "
+            f"{f'{scale3} x':>{col_width}}"
         )
     )
 
@@ -158,9 +158,9 @@ def print_table_4col(
         (
             f"{'':>{index_width}}  | "
             f"{'':>{label_width}} | "
-            f"{f'{scale1} ×':>{col_width}} | "
-            f"{f'{scale2} ×':>{col_width}} | "
-            f"{f'{scale3} ×':>{col_width}}"
+            f"{f'{scale1} x':>{col_width}} | "
+            f"{f'{scale2} x':>{col_width}} | "
+            f"{f'{scale3} x':>{col_width}}"
         )
     )
 
@@ -213,7 +213,7 @@ def print_stiffness_mat(
     hdr = f"{{:>{col_width}}}"
     lab = f"{{:>{label_width}}}"
 
-    lines = [f"{name} =", f"{scale} ×"]
+    lines = [f"{name} =", f"{scale} x"]
 
     header_num = f"{'':>3} | {lab.format('')} | " + " ".join(
         hdr.format(f"{j:0d}") for j in range(1, n_cols + 1)
