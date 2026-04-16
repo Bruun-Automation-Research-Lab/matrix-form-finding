@@ -57,7 +57,7 @@ and all unstressed lengths are equal.
 
 ### Recommended runs
 
-- Run `FD_fixed` for this case
+- Run `FD_linear` for this case
 - For `SM` and `DR`, set
 
   self.fd_mode = "constant_q"
@@ -102,7 +102,7 @@ $$
 
 ### Recommended runs
 
-- Run `FD_iter` for this case
+- Run `FD_nonlinear` for this case
 - For `SM` and `DR`, set
 
   self.fd_mode = "constant_f"

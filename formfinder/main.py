@@ -112,9 +112,9 @@ class FormFinder:
         self.A = np.eye(len(self.e))
         self.L_0 = np.copy(self.L)  # L_0 is initial len
 
-        self.fd_mode = "constant_f"
+        self.mode = "normal"
 
-        match self.fd_mode:
+        match self.mode:
             case "normal":
                 None
             case "constant_q":
@@ -149,8 +149,8 @@ class FormFinder:
 
             if self.solver == "FD_linear":
                 self.fd_linear_solver()
-            elif self.solver == "FD_iter":
-                self.fd_iter_solver()
+            elif self.solver == "FD_nonlinear":
+                self.fd_nonlinear_solver()
             elif self.solver == "SM":
                 self.sm_solver()
             elif self.solver == "DR_imp":
@@ -175,7 +175,7 @@ class FormFinder:
                 error = np.abs(self.L_total_hist[-2] - self.L_total_hist[-1])
 
                 print(
-                    f"Iteration {self.iteration}: "
+                    f"Iteration {self.iteration:03d}: "
                     f"Total Len = {self.L_total_hist[-1]:.3f}, "
                     f"Max error = {error:.3e}"
                 )
@@ -230,7 +230,7 @@ class FormFinder:
 
         self.KE_history = [0]  # dont use in FD
 
-    def fd_iter_solver(self):
+    def fd_nonlinear_solver(self):
         """Force Density (FD) solver with fixed F."""
         F = np.diag(self.e_l.flatten())
         Q = F @ np.linalg.inv(self.L)
@@ -266,7 +266,7 @@ class FormFinder:
     def sm_solver(self):
         """Stiffnes Method (SM) solver."""
 
-        match self.fd_mode:
+        match self.mode:
             case "constant_f":
                 self.L_0 = np.copy(self.L)
 
@@ -330,7 +330,7 @@ class FormFinder:
     def dr_implicit_solver(self):
         """Dynamic Relaxation (DR) solver."""
 
-        match self.fd_mode:
+        match self.mode:
             case "constant_f":
                 self.L_0 = np.copy(self.L)  # L_0 is initial len
 
@@ -570,7 +570,7 @@ if __name__ == "__main__":
 
     solvers = {
         1: "FD_linear",
-        2: "FD_iter",
+        2: "FD_nonlinear",
         3: "SM",
         4: "DR_imp",
         5: "DR_leap",
@@ -587,7 +587,7 @@ if __name__ == "__main__":
     }
 
     run = FormFinder(
-        solver=solvers[1], structure=structs[3], debug=True, plot_save=True
+        solver=solvers[3], structure=structs[4], debug=False, plot_save=True
     )
 
     run.solve()

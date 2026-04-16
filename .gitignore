@@ -10,6 +10,7 @@
 debug/*.txt
 output/*.gif
 output/*.png
+output/*.out
 
 # ======================
 # Python Bytecode Files
