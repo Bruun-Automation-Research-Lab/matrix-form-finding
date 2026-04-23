@@ -584,10 +584,11 @@ if __name__ == "__main__":
         5: "CEE6501_2D",
         6: "CEE6501_PointLoad",
         7: "Star",
+        8: "Test_Constrained",
     }
 
     run = FormFinder(
-        solver=solvers[3], structure=structs[4], debug=False, plot_save=True
+        solver=solvers[2], structure=structs[1], debug=True, plot_save=True
     )
 
     run.solve()
