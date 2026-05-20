@@ -3,7 +3,7 @@ import numpy as np
 import scipy
 
 import utils.log as hl  # helper functions for logging and debugging
-import utils.solver as hs  # helper functions for solving linear systems and computing energies
+import utils.solver as hs  # helper functions for solving linear systems
 import utils.matrix as hm  # helper functions for creating structural matrices
 import utils.plot as hp  # helper functions for plotting and visualization
 
