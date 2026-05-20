@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-
 ## THIS CODE IS NOT FIGURED OUT YET
 ## JUST A QUICK CHECK ON CONSTRAINED FORCE DENSITY
 
@@ -22,7 +21,7 @@ def build_full_connectivity(branches, n_nodes):
 
 def partition_connectivity(C_s, free_nodes, fixed_nodes):
     """
-    Reorder connectivity into [free | fixed] node order and partition into C and C_f.
+    Reorder connectivity into [free|fixed] node order and partition into C|C_f.
     """
     node_order = list(free_nodes) + list(fixed_nodes)
     node_index = {node: i for i, node in enumerate(node_order)}
@@ -54,7 +53,7 @@ def reorder_coordinates(xyz_free, xyz_fixed):
 
 def restore_original_node_order(xyz_reordered, node_order):
     """
-    Convert reordered coordinates [free | fixed] back to original node numbering.
+    Convert reordered coordinates [free|fixed] back to original node numbering.
     """
     n_nodes = len(node_order)
     ndim = xyz_reordered.shape[1]
@@ -141,7 +140,7 @@ def plot_structure(
 
     if show_node_labels:
         for n in range(xyz.shape[0]):
-            ax.text(xyz[n, 0], xyz[n, 1], f"  {n+1}", fontsize=10)
+            ax.text(xyz[n, 0], xyz[n, 1], f"  {n + 1}", fontsize=10)
 
     ax.set_title(title)
     ax.set_xlabel("x")
@@ -333,6 +332,7 @@ q_init = np.array([1.0, 1.0, 1.0, 1.0, 1.0])
 # because nodes 3 and 4 collapse to the same point in the first solve.
 force_constraints = {
     0: 2.5,
+    1: 2.5,
 }
 
 result = constrained_force_density_method(

@@ -7,8 +7,14 @@
   "terminal.integrated.copyOnSelection": true,
   "terminal.integrated.profiles.windows": {
     "Conda Prompt (workspace)": {
-      "path": ["${env:windir}\\Sysnative\\cmd.exe", "${env:windir}\\System32\\cmd.exe"],
-      "args": ["/K", "C:\\ProgramData\\Anaconda3\\Scripts\\activate.bat"],
+      "path": [
+        "${env:windir}\\Sysnative\\cmd.exe",
+        "${env:windir}\\System32\\cmd.exe"
+      ],
+      "args": [
+        "/K",
+        "C:\\ProgramData\\Anaconda3\\Scripts\\activate.bat"
+      ],
       "icon": "terminal-cmd"
     }
   },
